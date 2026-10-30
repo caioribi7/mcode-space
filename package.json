@@ -1,0 +1,35 @@
+{
+  "name": "mcode-space",
+  "version": "0.1.0",
+  "description": "Seu código, seus terminais. Um espaço MCode.",
+  "private": true,
+  "main": "electron/main.cjs",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "dev": "npm run start",
+    "test": "node --test tests/*.test.cjs",
+    "test:smoke": "npm run build && electron . --smoke-test",
+    "dist": "npm run build && electron-builder --win portable"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "node-pty": "1.1.0"
+  },
+  "devDependencies": {
+    "electron": "45.2.0",
+    "electron-builder": "26.18.0",
+    "esbuild": "0.28.2"
+  },
+  "build": {
+    "appId": "br.com.mcode.space",
+    "productName": "MCode Space",
+    "npmRebuild": false,
+    "directories": { "output": "release" },
+    "files": ["electron/**/*", "dist/**/*", "package.json"],
+    "asarUnpack": ["node_modules/node-pty/**/*"],
+    "win": { "target": "portable", "icon": "assets/icon.ico", "signExecutable": false },
+    "portable": { "artifactName": "MCode-Space-${version}.exe" }
+  }
+}

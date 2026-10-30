@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-30T20:21:27.124142+00:00",
+  "title": "Design System: MCode Space",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "dialog",
+        "value": "0 15px 50px #0008",
+        "purpose": "Diálogo modal."
+      },
+      {
+        "name": "toast",
+        "value": "0 8px 28px #0006",
+        "purpose": "Avisos flutuantes."
+      },
+      {
+        "name": "terminal-focus",
+        "value": "inset 0 0 0 1px #a3ff1230",
+        "purpose": "Painel ativo."
+      },
+      {
+        "name": "editor-focus",
+        "value": "inset 0 0 0 1px #a3ff1220",
+        "purpose": "Área de código com foco interno."
+      }
+    ],
+    "motion": [
+      {
+        "name": "reduced-motion",
+        "value": "@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}",
+        "purpose": "Sem animação decorativa."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact",
+        "value": "1100px"
+      }
+    ],
+    "focus": {
+      "outline": "2px solid var(--green, #a3ff12)",
+      "outlineOffset": "-2px",
+      "exception": "#code remove outline e usa editor-focus na área de código."
+    },
+    "resizing": {
+      "handleThickness": "4px",
+      "hoverBackground": "var(--green, #a3ff12)",
+      "sidebar": {
+        "initial": "260px",
+        "compactCssDefault": "220px",
+        "minimum": "190px",
+        "maximum": "480px",
+        "keyboardStep": "16px",
+        "keys": "ArrowLeft / ArrowRight",
+        "precedence": "Largura inline restaurada ou ajustada prevalece sobre default CSS compacto."
+      },
+      "editor": {
+        "initial": "42%",
+        "minimum": "160px",
+        "maximum": "workbench height - 230px",
+        "keyboardStep": "20px",
+        "keys": "ArrowUp / ArrowDown"
+      }
+    },
+    "terminalTheme": {
+      "source": "src/app.js: new Terminal theme",
+      "colorReferences": {
+        "background": "colors.background",
+        "foreground": "colors.terminal-foreground",
+        "cursor": "colors.primary",
+        "selectionBackground": "colors.selection",
+        "black": "colors.raised",
+        "red": "colors.ansi-red",
+        "green": "colors.primary",
+        "yellow": "colors.session-amber",
+        "blue": "colors.session-blue",
+        "magenta": "colors.session-pink",
+        "cyan": "colors.ansi-cyan",
+        "white": "colors.foreground",
+        "brightBlack": "colors.muted"
+      },
+      "brightVariants": "Demais variantes bright herdadas do xterm; não configuradas pelo aplicativo.",
+      "cursorStyle": "bar",
+      "cursorBlink": true,
+      "hostPadding": "0",
+      "xtermPadding": "12px 8px 8px 16px"
+    },
+    "sessionIdentification": {
+      "colorReferences": {
+        "green": "colors.primary",
+        "blue": "colors.session-blue",
+        "amber": "colors.session-amber",
+        "pink": "colors.session-pink"
+      },
+      "activeIndicator": "2px bottom line",
+      "ended": "Ponto muted e texto (encerrado).",
+      "keyboardReorder": "Ctrl+Shift+ArrowLeft/ArrowRight"
+    }
+  },
+  "components": [
+    {
+      "name": "Ação principal",
+      "kind": "button",
+      "html": "<button class=\"ds-primary\">Abrir pasta</button>",
+      "css": ".ds-primary{font:500 13px Space,'Segoe UI',sans-serif;min-height:34px;padding:8px 13px;border:0;border-radius:5px;background:var(--green,#a3ff12);color:var(--bg,#0b100d);cursor:pointer}.ds-primary:hover{background:#b6ff49}.ds-primary:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}.ds-primary:disabled{opacity:.4;cursor:not-allowed}",
+      "refersTo": "button-primary"
+    },
+    {
+      "name": "Ação secundária",
+      "kind": "button",
+      "html": "<button class=\"ds-secondary\">Novo terminal</button>",
+      "css": ".ds-secondary{font:500 13px Space,'Segoe UI',sans-serif;min-height:34px;padding:8px 13px;border:0;border-radius:5px;background:var(--raised,#18221b);color:var(--text,#f1f5ef);cursor:pointer}.ds-secondary:hover{background:var(--raised,#18221b)}.ds-secondary:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}.ds-secondary:disabled{opacity:.4;cursor:not-allowed}",
+      "refersTo": "button-secondary"
+    },
+    {
+      "name": "Filtro de arquivos",
+      "kind": "input",
+      "html": "<input class=\"ds-filter\" aria-label=\"Filtrar arquivos\" placeholder=\"Filtrar arquivos\">",
+      "css": ".ds-filter{font:12px Space,'Segoe UI',sans-serif;width:100%;background:var(--bg,#0b100d);border:1px solid var(--line,#2a332d);color:var(--text,#f1f5ef);padding:9px 10px;border-radius:4px}.ds-filter::placeholder{color:var(--muted,#9eafa3)}.ds-filter:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}",
+      "refersTo": "input-filter"
+    },
+    {
+      "name": "Aba de terminal",
+      "kind": "nav",
+      "html": "<div class=\"ds-tab\"><span class=\"ds-dot\"></span><button role=\"tab\" aria-selected=\"true\">PowerShell 1</button></div>",
+      "css": ".ds-tab{font:12px Space,'Segoe UI',sans-serif;position:relative;display:flex;align-items:center;gap:7px;min-width:160px;max-width:240px;height:40px;padding:0 8px 0 13px;border-right:1px solid var(--line,#2a332d);background:var(--surface,#111a14);color:var(--text,#f1f5ef)}.ds-tab:after{content:'';position:absolute;height:2px;bottom:0;left:0;right:0;background:var(--green,#a3ff12)}.ds-dot{width:6px;height:6px;border-radius:50%;background:var(--green,#a3ff12)}.ds-tab button{font:inherit;background:transparent;color:inherit;border:0;flex:1;text-align:left;padding:8px 0;cursor:pointer}.ds-tab button:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}",
+      "refersTo": "terminal-tab-active"
+    },
+    {
+      "name": "Contagem de terminais",
+      "kind": "chip",
+      "html": "<span class=\"ds-count\">2</span>",
+      "css": ".ds-count{font:11px Geist,monospace;color:var(--muted,#9eafa3);background:var(--raised,#18221b);padding:3px 6px;border-radius:4px}",
+      "refersTo": "terminal-count"
+    },
+    {
+      "name": "Divisor lateral",
+      "kind": "custom",
+      "html": "<div class=\"ds-resize\" tabindex=\"0\" role=\"separator\" aria-orientation=\"vertical\" aria-label=\"Redimensionar explorador\"></div>",
+      "css": ".ds-resize{width:4px;height:160px;background:var(--line,#2a332d);cursor:col-resize}.ds-resize:hover{background:var(--green,#a3ff12)}.ds-resize:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Área de trabalho MCode",
+    "overview": "Interface de trabalho que herda a identidade oficial MCode. A marca aparece no cabeçalho, no estado vazio e nas ações principais; as áreas de código permanecem discretas. O conteúdo e os controles usam português, com densidade de ferramenta desktop e superfícies contínuas.",
+    "keyCharacteristics": [
+      "Identidade oficial MCode e verde neon funcional.",
+      "Planos escuros, divisórias discretas e controles compactos.",
+      "Tipografia local: Space Grotesk na interface e Geist Mono no código."
+    ],
+    "rules": [
+      {
+        "name": "The Identificação Rule",
+        "body": "Cor de sessão acompanha nome e indicação de estado; nunca substitui o texto.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do preservar proporções e cores dos logos oficiais.",
+      "Do usar verde nas ações e nos estados de interação.",
+      "Do acompanhar cor de sessão com nome e estado textual.",
+      "Do preservar foco de teclado e alternativas ao arraste."
+    ],
+    "donts": [
+      "Don't adicionar brilhos, gradientes ou animações decorativas.",
+      "Don't redigitar o logo como tipografia da interface.",
+      "Don't inserir afirmações fictícias sobre trabalho executado."
+    ]
+  }
+}
