@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
-const { inside, list, read, save } = require('../electron/files.cjs');
+const { inside, list, read, save, move, readImage } = require('../electron/files.cjs');
 
 async function fixture(t) {
   const base = await fs.realpath(os.tmpdir());
@@ -50,4 +50,47 @@ test('realpath rejects directory links pointing outside the workspace',async t=>
   const root=await fixture(t);
   await fs.symlink(path.dirname(root),path.join(root,'outside'),process.platform==='win32'?'junction':'dir');
   await assert.rejects(list(root,'outside'),/fora da pasta/);
+});
+
+test('moving a file preserves content and revision so its open editor can save',async t=>{
+  const root=await fixture(t);
+  const original=await read(root,'hello.txt');
+  const moved=await move(root,'hello.txt','src');
+  assert.deepEqual(moved,{from:'hello.txt',to:'src/hello.txt',directory:false});
+  await assert.rejects(fs.stat(path.join(root,'hello.txt')),{code:'ENOENT'});
+  assert.equal((await read(root,moved.to)).revision,original.revision);
+  await save(root,{...original,path:moved.to,text:'Editado após mover'});
+  assert.equal((await read(root,moved.to)).text,'Editado após mover');
+});
+test('moving refuses collisions, links, Git metadata and workspace escape without deleting source',async t=>{
+  const root=await fixture(t);
+  await fs.writeFile(path.join(root,'src','hello.txt'),'Destino intacto');
+  await assert.rejects(move(root,'hello.txt','src'),/Já existe/);
+  assert.equal((await read(root,'src/hello.txt')).text,'Destino intacto');
+  assert.equal((await read(root,'hello.txt')).text,'Olá MCode\r\n');
+  await assert.rejects(move(root,'hello.txt','..'),/fora da pasta/);
+  await assert.rejects(move(root,'hello.txt','.git'),/protegidos/);
+  await assert.rejects(move(root,'.','src'),/trabalho não pode/);
+  await fs.symlink(path.join(root,'src'),path.join(root,'link'),process.platform==='win32'?'junction':'dir');
+  await assert.rejects(move(root,'link','.'),/Links/);
+});
+test('folders move with contents but reject descendants and nested repositories',async t=>{
+  const root=await fixture(t);
+  await fs.mkdir(path.join(root,'src','nested'));
+  await fs.writeFile(path.join(root,'src','nested','app.js'),'code');
+  await assert.rejects(move(root,'src','src/nested'),/dentro dela mesma/);
+  await fs.mkdir(path.join(root,'target'));
+  const result=await move(root,'src','target');
+  assert.equal(result.to,'target/src');
+  assert.equal((await read(root,'target/src/nested/app.js')).text,'code');
+  await fs.mkdir(path.join(root,'target','src','nested','.git'));
+  await assert.rejects(move(root,'target/src','.'),/repositório Git/);
+});
+test('Markdown images are scoped to the workspace and exclude active SVG/HTML',async t=>{
+  const root=await fixture(t);
+  await fs.writeFile(path.join(root,'pixel.png'),Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a/b8AAAAASUVORK5CYII=','base64'));
+  assert.match(await readImage(root,'pixel.png'),/^data:image\/png;base64,/);
+  await assert.rejects(readImage(root,'hello.txt'),/imagens locais/);
+  await fs.writeFile(path.join(root,'active.svg'),'<svg onload="alert(1)"/>');
+  await assert.rejects(readImage(root,'active.svg'),/imagens locais/);
 });

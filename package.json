@@ -1,6 +1,6 @@
 {
   "name": "mcode-space",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Seu código, seus terminais. Um espaço MCode.",
   "private": true,
   "main": "electron/main.cjs",
@@ -15,6 +15,9 @@
   "dependencies": {
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",
+    "dompurify": "3.4.17",
+    "lucide": "1.65.0",
+    "marked": "18.1.2",
     "node-pty": "1.1.0"
   },
   "devDependencies": {
@@ -26,10 +29,36 @@
     "appId": "br.com.mcode.space",
     "productName": "MCode Space",
     "npmRebuild": false,
-    "directories": { "output": "release" },
-    "files": ["electron/**/*", "dist/**/*", "package.json"],
-    "asarUnpack": ["node_modules/node-pty/**/*"],
-    "win": { "target": "portable", "icon": "assets/icon.ico", "signExecutable": false },
-    "portable": { "artifactName": "MCode-Space-${version}.exe" }
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "dist/**/*",
+      "package.json",
+      "!node_modules/lucide/**",
+      "!node_modules/marked/**",
+      "!node_modules/dompurify/**",
+      "!node_modules/@xterm/**",
+      "!node_modules/node-pty/**/*.pdb",
+      "!node_modules/node-pty/prebuilds/darwin-*/**",
+      "!node_modules/node-pty/prebuilds/win32-arm64/**",
+      "!node_modules/node-pty/src/**",
+      "!node_modules/node-pty/deps/**",
+      "!node_modules/node-pty/third_party/**",
+      "!node_modules/node-pty/build/**",
+      "!**/*.map"
+    ],
+    "asarUnpack": [
+      "node_modules/node-pty/**/*"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "assets/icon.ico",
+      "signExecutable": false
+    },
+    "portable": {
+      "artifactName": "MCode-Space-${version}.exe"
+    }
   }
 }

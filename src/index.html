@@ -10,37 +10,47 @@
 <body>
   <header class="topbar">
     <div class="brand"><img src="assets/mcode.svg" alt="MCode" width="137" height="42"><span class="brand-divider"></span><span class="space-name">Space</span></div>
+    <button id="toggle-explorer" class="icon-button" title="Recolher explorador (Ctrl B)" aria-label="Recolher explorador" aria-expanded="true"></button>
     <div id="workspace-name" class="workspace-name">Seu espaço de trabalho</div>
     <button id="open-folder" class="button primary">Abrir pasta <kbd>Ctrl O</kbd></button>
   </header>
+  <nav id="workspace-tabs" class="workspace-tabs" aria-label="Pastas abertas"></nav>
   <main class="app-layout">
     <aside id="sidebar" class="sidebar">
-      <div class="section-head"><h1>Explorador</h1><div class="head-actions"><button id="refresh" class="icon-button" title="Atualizar arquivos" aria-label="Atualizar arquivos"></button><button id="collapse-tree" class="icon-button" title="Recolher pastas" aria-label="Recolher pastas"></button></div></div>
+      <div class="section-head"><h1>Explorador</h1><div class="head-actions"><button id="collapse-tree" class="icon-button" title="Recolher pastas" aria-label="Recolher pastas"></button><button id="collapse-explorer" class="icon-button" title="Recolher explorador" aria-label="Recolher explorador"></button></div></div>
       <div class="filter-wrap"><input id="file-filter" type="search" placeholder="Filtrar arquivos visíveis…" aria-label="Filtrar arquivos visíveis"></div>
       <div id="tree-root" class="tree-root"></div>
       <div id="tree" class="tree" aria-label="Arquivos da pasta"></div>
+      <div id="move-feedback" class="move-feedback" role="status" hidden></div>
+      <div class="sidebar-signature" aria-hidden="true"><img src="assets/symbol.svg" alt="" width="42" height="42"><span>ESPAÇO<br>PRA CRIAR.</span><span class="signature-ascii">{<br>_/</span></div>
       <div class="sidebar-bottom"><span class="status-dot"></span><span>Local. Do seu jeito.</span></div>
     </aside>
     <div id="sidebar-resize" class="resize-handle" role="separator" tabindex="0" aria-label="Largura do explorador" aria-orientation="vertical"></div>
     <section class="workbench">
       <section id="editor" class="editor" aria-label="Editor de arquivos" hidden>
-        <div class="editor-bar"><div id="file-tabs" class="file-tabs" role="tablist" aria-label="Arquivos abertos"></div><button id="save-file" class="button subtle">Salvar <kbd>Ctrl S</kbd></button><button id="hide-editor" class="icon-button" aria-label="Ocultar editor" title="Ocultar editor"></button></div>
+        <div class="editor-bar"><div id="file-tabs" class="file-tabs" role="tablist" aria-label="Arquivos abertos"></div><div id="markdown-modes" class="markdown-modes" role="group" aria-label="Modo do arquivo Markdown" hidden><button id="markdown-edit" class="icon-button selected" aria-label="Editar Markdown" title="Editar Markdown" aria-pressed="true"></button><button id="markdown-preview" class="icon-button" aria-label="Visualizar Markdown" title="Visualizar Markdown" aria-pressed="false"></button></div><button id="save-file" class="button subtle">Salvar <kbd>Ctrl S</kbd></button><button id="hide-editor" class="icon-button" aria-label="Ocultar editor" title="Ocultar editor"></button></div>
         <div class="editor-path" id="editor-path"></div>
         <div class="code-area"><div id="line-numbers" class="line-numbers" aria-hidden="true">1</div><textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Conteúdo do arquivo"></textarea></div>
+        <article id="markdown-content" class="markdown-content" aria-label="Prévia de Markdown" tabindex="0" hidden></article>
         <div class="editor-footer"><span id="file-state">UTF-8</span><span>Tab: 2 espaços</span></div>
       </section>
       <div id="editor-resize" class="horizontal-resize" role="separator" tabindex="0" aria-label="Altura do editor" aria-orientation="horizontal" hidden></div>
       <section class="terminals" aria-label="Terminais">
-        <div class="terminal-toolbar"><div class="terminal-heading"><span id="terminal-icon"></span><h2>Terminais</h2><span id="terminal-count" class="count">0</span></div><div class="terminal-actions"><div class="layout-switch" role="group" aria-label="Organização dos terminais"><button data-layout="tabs" class="icon-button selected" title="Abas" aria-label="Abas" aria-pressed="true"></button><button data-layout="columns" class="icon-button" title="Lado a lado" aria-label="Lado a lado" aria-pressed="false"></button><button data-layout="grid" class="icon-button" title="Grade" aria-label="Grade" aria-pressed="false"></button></div><select id="shell-type" aria-label="Tipo de shell"></select><button id="new-terminal" class="button primary">Novo terminal <span aria-hidden="true">+</span></button></div></div>
+        <div class="terminal-toolbar"><div class="terminal-heading"><span id="terminal-icon"></span><h2>Terminais</h2><span id="terminal-count" class="count">0</span></div><div class="terminal-actions"><div class="layout-switch" role="group" aria-label="Organização dos terminais"><button data-layout="tabs" class="icon-button selected" title="Abas" aria-label="Abas" aria-pressed="true"></button><button data-layout="columns" class="icon-button" title="Lado a lado" aria-label="Lado a lado" aria-pressed="false"></button><button data-layout="grid" class="icon-button" title="Mosaico" aria-label="Mosaico" aria-pressed="false"></button></div><select id="mosaic-layout" aria-label="Organização do mosaico" hidden></select><select id="shell-type" aria-label="Tipo de shell"></select><button id="new-terminal" class="button primary">Novo terminal <span data-icon="plus" aria-hidden="true"></span></button></div></div>
         <div id="terminal-tabs" class="terminal-tabs" role="tablist" aria-label="Terminais abertos"></div>
         <div id="terminal-panels" class="terminal-panels"></div>
-        <div id="welcome" class="welcome"><img src="assets/symbol.svg" alt="" width="86" height="86"><h2>Tudo no seu espaço.</h2><p>Arquivos de um lado. Seus terminais do outro.<br>Abra uma pasta e comece a construir.</p><button id="welcome-open" class="button primary">Escolher pasta</button><div class="welcome-hints"><span><kbd>Ctrl Shift T</kbd> Novo terminal</span><span><kbd>Ctrl B</kbd> Explorador</span></div></div>
+        <div id="welcome" class="welcome">
+          <div class="welcome-copy"><h2>Seu código.<br>Seu espaço.</h2><div class="poster-rule" aria-hidden="true"><span></span><span data-icon="arrowRight"></span></div><p>Arquivos de um lado. Seus terminais do outro.<br>Abra uma pasta e comece a construir.</p><button id="welcome-open" class="button primary">Escolher pasta <span data-icon="arrowUpRight" aria-hidden="true"></span></button></div>
+          <div class="welcome-art" aria-hidden="true"><div class="art-corner"></div><pre id="brand-ascii"></pre><span class="art-word">SPACE</span><div class="art-bottom"><span>[ &lt;/&gt; ]</span><span>MCODE</span></div></div>
+          <div class="welcome-hints"><span><kbd>Ctrl Shift T</kbd> Novo terminal</span><span><kbd>Ctrl B</kbd> Explorador</span><span class="welcome-end" aria-hidden="true">{ criar. organizar. construir. }</span></div>
+        </div>
       </section>
     </section>
   </main>
   <footer class="statusbar"><div><span class="status-dot"></span><span id="connection">Pronto para começar</span><button id="git-status" class="git-status" title="Atualizar estado do Git"></button></div><div><span id="status-layout">Abas</span><span id="status-file">MCode Space</span></div></footer>
   <div id="toast" class="toast" role="status" hidden></div>
-  <dialog id="rename-dialog"><form method="dialog"><h2>Renomear terminal</h2><label for="terminal-name">Nome</label><input id="terminal-name" maxlength="60" required><label for="terminal-color">Cor de identificação</label><select id="terminal-color"><option value="green">Verde MCode</option><option value="blue">Azul</option><option value="amber">Âmbar</option><option value="pink">Rosa</option></select><div class="dialog-actions"><button value="cancel" class="button subtle" formnovalidate>Cancelar</button><button value="save" class="button primary">Salvar</button></div></form></dialog>
+  <div id="folder-menu" class="folder-menu" role="menu" hidden><button id="folder-new-tab" role="menuitem"><span data-icon="folderPlus"></span>Abrir em nova aba</button><button id="folder-new-terminal" role="menuitem"><span data-icon="terminal"></span>Novo terminal aqui</button></div>
+  <dialog id="rename-dialog"><form id="rename-form"><h2>Renomear terminal</h2><label for="terminal-name">Nome</label><input id="terminal-name" maxlength="60" required><label for="terminal-color">Cor de identificação</label><select id="terminal-color"><option value="green">Verde MCode</option><option value="blue">Azul</option><option value="amber">Âmbar</option><option value="pink">Rosa</option></select><div class="dialog-actions"><button id="cancel-rename" type="button" class="button subtle">Cancelar</button><button value="save" type="submit" class="button primary">Salvar</button></div></form></dialog>
   <script src="app.js"></script>
 </body>
 </html>

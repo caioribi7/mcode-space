@@ -15,7 +15,22 @@ module.exports = async ({ app, win, setRoot, sessions }) => {
     throw new Error('Smoke timeout: '+code);
   };
   try {
+    win.show();
+    win.focus();
+    win.webContents.focus();
+    await fs.mkdir(output,{recursive:true});
+    await wait('document.querySelector("#brand-ascii").textContent.includes("MC")');
+    await win.webContents.executeJavaScript('document.fonts.ready.then(()=>true)');
+    await new Promise(resolve=>setTimeout(resolve,300));
+    await fs.writeFile(path.join(output,'welcome.png'),(await win.webContents.capturePage()).toPNG());
+    win.setSize(1000,720);
+    await new Promise(resolve=>setTimeout(resolve,400));
+    const welcomeFits=await js('(()=>{const area=document.querySelector("#welcome");return area.scrollWidth<=area.clientWidth&&area.scrollHeight<=area.clientHeight;})()');
+    assert.equal(welcomeFits,true,'Welcome must fit the compact desktop viewport');
+    await fs.writeFile(path.join(output,'welcome-compact.png'),(await win.webContents.capturePage()).toPNG());
+    win.setSize(1480,940);
     await fs.mkdir(path.join(root,'src'));
+    await fs.mkdir(path.join(root,'archive'));
     await fs.writeFile(path.join(root,'README.md'),'# MCode Space\n\nSeu código, seus terminais.\n');
     await fs.writeFile(path.join(root,'src','app.js'),'const space = "MCode";\nconsole.log(space);\n');
     await fs.writeFile(path.join(root,'package.json'),'{"name":"mcode-space"}\n');
@@ -31,16 +46,100 @@ module.exports = async ({ app, win, setRoot, sessions }) => {
     await js('document.querySelector("#code").value+="\\nEdição verificada.\\n";document.querySelector("#code").dispatchEvent(new Event("input"));document.querySelector("#save-file").click()');
     await wait('document.querySelector("#file-state").textContent==="UTF-8"');
     assert.match(await fs.readFile(path.join(root,'README.md'),'utf8'),/Edição verificada/);
+    await js('document.querySelector("#code").value+="\\nRascunho preservado ao mover.\\n";document.querySelector("#code").dispatchEvent(new Event("input"))');
+    async function prepareDrag(sourcePath,targetSelector) {
+      await js(`(()=>{window.__dragSource=[...document.querySelectorAll('.tree-row')].find(row=>row.title===${JSON.stringify(sourcePath)});window.__dragTarget=document.querySelector(${JSON.stringify(targetSelector)});window.__dragData=new DataTransfer();__dragSource.dispatchEvent(new DragEvent('dragstart',{bubbles:true,dataTransfer:__dragData}));__dragTarget.dispatchEvent(new DragEvent('dragover',{bubbles:true,dataTransfer:__dragData}));return true;})()`);
+    }
+    async function drop() { await js('__dragTarget.dispatchEvent(new DragEvent("drop",{bubbles:true,dataTransfer:__dragData}));__dragSource.dispatchEvent(new DragEvent("dragend",{bubbles:true,dataTransfer:__dragData}));true'); }
+    await prepareDrag('README.md','.tree-row[title="src"]');
+    assert.equal(await js('document.querySelector(".tree-row[title=src]").classList.contains("tree-drop-target")'),true);
+    assert.match(await js('document.querySelector("#move-feedback").textContent'),/Mover.*README.md.*src/);
+    await new Promise(resolve=>setTimeout(resolve,180));
+    await fs.writeFile(path.join(output,'explorer-drag.png'),(await win.webContents.capturePage()).toPNG());
+    await drop();
+    await wait('document.querySelector("#editor-path").textContent==="src/README.md"');
+    assert.match(await js('document.querySelector("#code").value'),/Rascunho preservado/);
+    await js('document.querySelector("#save-file").click()');
+    await wait('document.querySelector("#file-state").textContent==="UTF-8"');
+    assert.match(await fs.readFile(path.join(root,'src','README.md'),'utf8'),/Rascunho preservado/);
+    await prepareDrag('src/README.md','#tree-root');await drop();
+    await wait('document.querySelector("#editor-path").textContent==="README.md"');
+    assert.match(await fs.readFile(path.join(root,'README.md'),'utf8'),/Rascunho preservado/);
     await js('document.querySelector("#new-terminal").click()');
     await wait('document.querySelectorAll(".terminal-tab").length===2');
     await js('document.querySelector("button[data-layout=grid]").click()');
     await wait('document.querySelectorAll(".terminal-panel:not([hidden])").length===2');
-    await js('document.querySelector(".panel-header .icon-button").click()');
+    const point=await js('(()=>{const r=document.querySelector(".terminal-tab [role=tab]").getBoundingClientRect();return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)};})()');
+    for(const clickCount of [1,2]){
+      win.webContents.sendInputEvent({type:'mouseDown',button:'left',clickCount,...point});
+      win.webContents.sendInputEvent({type:'mouseUp',button:'left',clickCount,...point});
+    }
     await wait('document.querySelector("#rename-dialog").open');
-    await js('document.querySelector("#terminal-name").value="Backend";document.querySelector("#terminal-color").value="blue";document.querySelector("#rename-dialog button[value=save]").click()');
+    await js('document.querySelector("#terminal-name").value="Backend";document.querySelector("#terminal-color").value="blue";document.querySelector("#terminal-name").focus()');
+    win.webContents.sendInputEvent({type:'keyDown',keyCode:'Return'});
+    win.webContents.sendInputEvent({type:'char',keyCode:'\r'});
+    win.webContents.sendInputEvent({type:'keyUp',keyCode:'Return'});
     await wait('document.querySelector(".terminal-tab").textContent.includes("Backend")');
+    await js('document.querySelector(".terminal-tab button[aria-label^=Renomear]").click()');
+    await wait('document.querySelector("#rename-dialog").open');
+    await js('document.querySelector("#terminal-name").value="Descartar";document.querySelector("#cancel-rename").click()');
+    await wait('!document.querySelector("#rename-dialog").open');
+    assert.match(await js('document.querySelector(".terminal-tab [role=tab]").textContent'),/Backend/);
+    assert.equal(await js('document.querySelector(".panel-header").textContent.includes("Backend")'),false);
     await js('document.querySelector(".terminal-tab button[aria-label*=direita]").click()');
     assert.match(await js('document.querySelectorAll(".terminal-tab")[1].textContent'),/Backend/);
+    assert.equal(await js('document.querySelector("#refresh")===null'),true);
+    await fs.writeFile(path.join(root,'auto-created.txt'),'watch');
+    await wait('[...document.querySelectorAll(".tree-row")].some(row=>row.title==="auto-created.txt")',5000);
+    await fs.unlink(path.join(root,'auto-created.txt'));
+    await wait('![...document.querySelectorAll(".tree-row")].some(row=>row.title==="auto-created.txt")',5000);
+    await js('document.querySelector("#collapse-explorer").click()');
+    assert.equal(await js('document.body.classList.contains("sidebar-hidden")'),true);
+    await js('document.querySelector("#toggle-explorer").click()');
+    assert.equal(await js('document.body.classList.contains("sidebar-hidden")'),false);
+    const guide='# Guia de trabalho\n\nUma prévia com **Markdown**.\n\n| Área | Estado |\n| --- | --- |\n| Editor | Pronto |\n\n```js\nconsole.log("MCode");\n```\n\n<script>window.__markdownUnsafe=true</script>\n<img src="x" onerror="window.__markdownUnsafe=true">\n<iframe srcdoc="evil"></iframe>\n<a href="javascript:window.__markdownUnsafe=true">Inseguro</a>\n';
+    await fs.writeFile(path.join(root,'pixel.png'),Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a/b8AAAAASUVORK5CYII=','base64'));
+    await fs.writeFile(path.join(root,'guide.md'),guide+'\n![Pixel local](pixel.png)\n');
+    await wait('[...document.querySelectorAll(".tree-row")].some(row=>row.title==="guide.md")',5000);
+    await js('[...document.querySelectorAll(".tree-row")].find(row=>row.title==="guide.md").click()');
+    await wait('document.querySelector("#editor-path").textContent==="guide.md"');
+    await js('document.querySelector("#markdown-preview").click()');
+    assert.equal(await js('document.querySelector("#markdown-content h1").textContent'),'Guia de trabalho');
+    assert.equal(await js('document.querySelectorAll("#markdown-content table").length'),1);
+    assert.equal(await js('document.querySelector("#markdown-content").querySelector("script,iframe,[onerror],a[href^=javascript]")===null'),true);
+    await wait('document.querySelector("#markdown-content img")?.src.startsWith("data:image/png;base64,")');
+    assert.equal(await js('Boolean(window.__markdownUnsafe)'),false);
+    await js('document.querySelector("#markdown-edit").click();document.querySelector("#code").value+="\\nRascunho entre pastas.\\n";document.querySelector("#code").dispatchEvent(new Event("input"));document.querySelector("#markdown-preview").click()');
+    const oldIds=await js('[...document.querySelectorAll(".terminal-tab")].map(t=>t.dataset.id)');
+    await js('document.querySelector(".tree-row[title=src]").dispatchEvent(new MouseEvent("contextmenu",{bubbles:true,clientX:70,clientY:250}));document.querySelector("#folder-new-tab").click()');
+    await wait('document.querySelectorAll(".workspace-tab").length===2&&document.querySelectorAll(".terminal-tab").length===1');
+    const childId=await js('document.querySelector(".terminal-tab").dataset.id');
+    const openFolderGuard=await js(`window.space.move('src','archive',${JSON.stringify(root)}).then(()=>false,error=>error.message.includes('Feche a aba'))`);assert.equal(openFolderGuard,true);
+    await js(`window.space.write(${JSON.stringify(oldIds[0])}, "Write-Output ('FOLDER_' + (20+22))\\r")`);
+    await wait('window.__output.includes("FOLDER_42")');
+    await js('document.querySelector(".tree-row[title=\\"app.js\\"]").click()');
+    await wait('document.querySelector("#editor-path").textContent==="app.js"');
+    assert.equal(await js('document.querySelector("#markdown-modes").hidden'),true);
+    await js('document.querySelector(".workspace-tab > button").click()');
+    await wait('document.querySelector("#editor-path").textContent==="guide.md"');
+    assert.match(await js('document.querySelector("#markdown-content").textContent'),/Rascunho entre pastas/);
+    assert.deepEqual(await js('[...document.querySelectorAll(".terminal-tab")].map(t=>t.dataset.id)'),oldIds);
+    await new Promise(resolve=>setTimeout(resolve,180));
+    await fs.writeFile(path.join(output,'folders.png'),(await win.webContents.capturePage()).toPNG());
+    await js('document.querySelector("#save-file").click()');
+    await wait('document.querySelector("#file-state").textContent==="UTF-8"');
+    assert.match(await fs.readFile(path.join(root,'guide.md'),'utf8'),/Rascunho entre pastas/);
+    await js(`window.space.closeTerminal(${JSON.stringify(childId)})`);
+    await js('document.querySelectorAll(".workspace-tab")[1].querySelector(".icon-button").click()');
+    await wait('document.querySelectorAll(".workspace-tab").length===1');
+    await js('document.querySelector("#new-terminal").click()');
+    await wait('document.querySelectorAll(".terminal-tab").length===3');
+    for(const preset of ['balanced','two','three','rows','line','focus-left','focus-top']){
+      await js(`document.querySelector('#mosaic-layout').value=${JSON.stringify(preset)};document.querySelector('#mosaic-layout').dispatchEvent(new Event('change'));true`);
+      assert.equal(await js('document.querySelectorAll(".terminal-panel:not([hidden])").length'),3);
+    }
+    await js('document.querySelector("#mosaic-layout").value="focus-left";document.querySelector("#mosaic-layout").dispatchEvent(new Event("change"))');
+    assert.ok(await js('document.querySelectorAll("svg[data-icon-library=lucide]").length>20'));
     const files=await js('window.space.list(".")');assert.ok(files.some(f=>f.name==='src'));
     const escape=await js('window.space.list("..").then(()=>false,()=>true)');assert.equal(escape,true);
     await fs.mkdir(output,{recursive:true});
@@ -56,9 +155,9 @@ module.exports = async ({ app, win, setRoot, sessions }) => {
     const overflow=await js('document.documentElement.scrollWidth>window.innerWidth');assert.equal(overflow,false);
     await js('Promise.all([...document.querySelectorAll(".terminal-tab")].map(t=>window.space.closeTerminal(t.dataset.id)))');
     await new Promise(resolve=>setTimeout(resolve,700));
-    console.log('SMOKE OK: shell real, explorador, edição, salvamento, dois terminais, grade, renomeação, reordenação, limite de pasta e captura visual.');
+    console.log('SMOKE OK: shells reais; abas de pastas preservando processos e rascunhos; atualização automática; recolher explorador; Markdown sanitizado, edição e prévia; sete mosaicos; ícones Lucide; mover arquivos; renomear e reordenar.');
     result = 0;
-  } catch(error) { console.error(error); }
+  } catch(error) { console.error(error);await fs.mkdir(output,{recursive:true});await fs.writeFile(path.join(output,'failure.png'),(await win.webContents.capturePage()).toPNG()).catch(()=>{}); }
   finally {
     for (const terminal of sessions.values()) terminal.kill();
     sessions.clear();

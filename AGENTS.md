@@ -9,3 +9,7 @@
 - Os terminais são processos reais com permissões do usuário, não uma sandbox. Encerramento e descarte de alterações exigem confirmação.
 - Preservar logos originais e fontes com suas licenças. Não depender de assets fora deste repositório.
 - Não versionar node_modules, dist, release, test-results, credenciais ou configurações pessoais.
+- Pastas são abas independentes. Toda operação de arquivo e criação de terminal informa a raiz autorizada; nunca usar a pasta ativa global para operações iniciadas em outra aba.
+- Atualização do explorador: 750ms, somente raiz e pastas expandidas, sem renderizar quando não há diferenças ou durante arraste. Não voltar com botão manual de atualizar.
+- Ícones funcionais vêm do Lucide em src/icons.js. Não escrever paths SVG próprios para controles; os logos oficiais são preservados.
+- Markdown usa Marked e DOMPurify. Nunca inserir HTML não sanitizado. Imagens raster locais passam pela validação de raiz/tamanho; links externos aceitam somente HTTP/HTTPS.

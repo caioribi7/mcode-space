@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-30T20:21:27.124142+00:00",
+  "generatedAt": "2026-10-30T21:17:08.628930+00:00",
   "title": "Design System: MCode Space",
   "extensions": {
     "shadows": [
@@ -23,6 +23,11 @@
         "name": "editor-focus",
         "value": "inset 0 0 0 1px #a3ff1220",
         "purpose": "Área de código com foco interno."
+      },
+      {
+        "name": "folder-menu",
+        "value": "0 8px 28px #0006",
+        "purpose": "Menu contextual de subpastas."
       }
     ],
     "motion": [
@@ -30,18 +35,32 @@
         "name": "reduced-motion",
         "value": "@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}",
         "purpose": "Sem animação decorativa."
+      },
+      {
+        "name": "move-success-feedback",
+        "value": "2800ms",
+        "purpose": "Tempo de permanência da confirmação inline de movimentação no explorador."
       }
     ],
     "breakpoints": [
       {
         "name": "compact",
         "value": "1100px"
+      },
+      {
+        "name": "short-window",
+        "value": "740px height"
       }
     ],
     "focus": {
       "outline": "2px solid var(--green, #a3ff12)",
       "outlineOffset": "-2px",
-      "exception": "#code remove outline e usa editor-focus na área de código."
+      "exception": "#code remove outline e usa editor-focus na área de código.",
+      "primary": {
+        "outline": "2px solid var(--bg, #0b100d)",
+        "outlineOffset": "-4px",
+        "purpose": "Contraste interno nas ações verdes recortadas."
+      }
     },
     "resizing": {
       "handleThickness": "4px",
@@ -93,9 +112,113 @@
         "amber": "colors.session-amber",
         "pink": "colors.session-pink"
       },
-      "activeIndicator": "2px bottom line",
+      "activeIndicator": "1px bottom line",
       "ended": "Ponto muted e texto (encerrado).",
-      "keyboardReorder": "Ctrl+Shift+ArrowLeft/ArrowRight"
+      "keyboardReorder": "Ctrl+Shift+ArrowLeft/ArrowRight",
+      "placement": "Nome e cor apenas na aba; cabeçalho do painel com ícone de pasta e caminho inicial, altura de 28px.",
+      "tabWidth": {
+        "minimum": "215px",
+        "maximum": "290px"
+      },
+      "rename": "Lápis explícito, clique duplo ou F2 abrem o formulário; Enter confirma nome e cor."
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Pôster",
+        "purpose": "Estado vazio, em Anton; 54px nas janelas compactas ou baixas."
+      },
+      "brand-title": {
+        "displayName": "Space",
+        "purpose": "Nome do aplicativo no cabeçalho."
+      },
+      "signature": {
+        "displayName": "Assinatura lateral",
+        "purpose": "Frase de marca em Anton; controles preservam Space."
+      }
+    },
+    "brandArtwork": {
+      "source": "assets/symbol.svg",
+      "ascii": {
+        "sampling": "64 × 32 alpha cells",
+        "characters": "MC0#*+",
+        "edgeCharacter": ":",
+        "font": "clamp(5px, .61vw, 9px)/1.08 Geist, monospace"
+      },
+      "halftone": {
+        "welcome": "radial-gradient(circle, #a3ff1240 .85px, transparent 1px) center / 5px 5px",
+        "sidebar": "radial-gradient(circle, #a3ff1226 .7px, transparent .9px) right center / 4px 4px",
+        "scope": "Arte inicial e assinatura lateral; nunca editor ou terminais."
+      },
+      "primaryClip": "polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%)"
+    },
+    "functionalIcons": {
+      "library": "Lucide",
+      "strokeWidth": 1.6,
+      "defaultSize": "18px",
+      "brandAssets": "Logos oficiais preservados, fora da biblioteca funcional."
+    },
+    "workspaceTabs": {
+      "height": "38px",
+      "width": {
+        "minimum": "130px",
+        "maximum": "280px"
+      },
+      "overflow": "horizontal",
+      "active": "surface, linha inset inferior verde de 1px e ícone verde",
+      "dirty": "Ponto junto ao nome da pasta.",
+      "explorerToggle": "Controle persistente no cabeçalho, aria-expanded e Ctrl B."
+    },
+    "folderMenu": {
+      "minimumWidth": "225px",
+      "padding": "5px",
+      "itemPadding": "10px",
+      "iconSize": "16px",
+      "actions": [
+        "Abrir em nova aba",
+        "Novo terminal aqui"
+      ],
+      "dismiss": "Escape ou clique externo."
+    },
+    "terminalToolbar": {
+      "minimumHeight": "56px",
+      "height": "auto",
+      "verticalPadding": "9px",
+      "actions": "flex-wrap: wrap; justify-content: flex-end",
+      "mosaicSelectMaximumWidth": "155px",
+      "compactMosaicSelectMaximumWidth": "140px"
+    },
+    "mosaicLayouts": {
+      "source": "src/layouts.mjs",
+      "presets": [
+        "Equilibrado",
+        "2 colunas",
+        "3 colunas",
+        "Empilhados",
+        "Em uma linha",
+        "Destaque à esquerda",
+        "Destaque no topo"
+      ],
+      "persistence": "Por aba de pasta.",
+      "overflow": "Rolagem interna preserva mínimos dos painéis.",
+      "standardColumnMinimum": "260px",
+      "standardRowMinimum": "210px",
+      "lineColumnMinimum": "280px",
+      "focusLeft": "minmax(300px, 2fr) minmax(260px, 1fr); linhas secundárias minmax(160px, 1fr)",
+      "focusTop": "colunas minmax(240px, 1fr); linhas minmax(240px, 2fr) minmax(180px, 1fr)"
+    },
+    "markdownPreview": {
+      "modes": "Lucide CodeXml e Eye, aria-pressed; seleção verde em selected-surface.",
+      "source": "Rascunho atual.",
+      "overflow": "auto",
+      "padding": "18px 30px 30px",
+      "body": "14px/1.75 Space, Segoe UI, sans-serif",
+      "h1": "28px/1.25",
+      "h2": "22px/1.3",
+      "h3": "18px",
+      "lowerHeadings": "15px",
+      "code": "12px/1.7 Geist, Consolas, monospace",
+      "textMeasure": "80ch",
+      "image": "max-width:100%; height:auto"
     }
   },
   "components": [
@@ -103,67 +226,75 @@
       "name": "Ação principal",
       "kind": "button",
       "html": "<button class=\"ds-primary\">Abrir pasta</button>",
-      "css": ".ds-primary{font:500 13px Space,'Segoe UI',sans-serif;min-height:34px;padding:8px 13px;border:0;border-radius:5px;background:var(--green,#a3ff12);color:var(--bg,#0b100d);cursor:pointer}.ds-primary:hover{background:#b6ff49}.ds-primary:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}.ds-primary:disabled{opacity:.4;cursor:not-allowed}",
+      "css": ".ds-primary{font:500 13px Space,'Segoe UI',sans-serif;min-height:34px;padding:8px 13px;border:0;border-radius:1px;background:var(--green,#a3ff12);color:var(--bg,#0b100d);cursor:pointer;clip-path:polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%)}.ds-primary:hover{background:#b6ff49}.ds-primary:focus-visible{outline:2px solid var(--bg,#0b100d);outline-offset:-4px}.ds-primary:disabled{opacity:.4;cursor:not-allowed}",
       "refersTo": "button-primary"
     },
     {
       "name": "Ação secundária",
       "kind": "button",
       "html": "<button class=\"ds-secondary\">Novo terminal</button>",
-      "css": ".ds-secondary{font:500 13px Space,'Segoe UI',sans-serif;min-height:34px;padding:8px 13px;border:0;border-radius:5px;background:var(--raised,#18221b);color:var(--text,#f1f5ef);cursor:pointer}.ds-secondary:hover{background:var(--raised,#18221b)}.ds-secondary:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}.ds-secondary:disabled{opacity:.4;cursor:not-allowed}",
+      "css": ".ds-secondary{font:500 13px Space,'Segoe UI',sans-serif;min-height:34px;padding:8px 13px;border:0;border-radius:1px;background:var(--raised,#18221b);color:var(--text,#f1f5ef);cursor:pointer}.ds-secondary:hover{background:var(--raised,#18221b)}.ds-secondary:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}.ds-secondary:disabled{opacity:.4;cursor:not-allowed}",
       "refersTo": "button-secondary"
     },
     {
       "name": "Filtro de arquivos",
       "kind": "input",
       "html": "<input class=\"ds-filter\" aria-label=\"Filtrar arquivos\" placeholder=\"Filtrar arquivos\">",
-      "css": ".ds-filter{font:12px Space,'Segoe UI',sans-serif;width:100%;background:var(--bg,#0b100d);border:1px solid var(--line,#2a332d);color:var(--text,#f1f5ef);padding:9px 10px;border-radius:4px}.ds-filter::placeholder{color:var(--muted,#9eafa3)}.ds-filter:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}",
+      "css": ".ds-filter{font:12px Space,'Segoe UI',sans-serif;width:100%;background:var(--bg,#0b100d);border:1px solid var(--line,#2a332d);color:var(--text,#f1f5ef);padding:9px 10px;border-radius:1px}.ds-filter::placeholder{color:var(--muted,#9eafa3)}.ds-filter:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}",
       "refersTo": "input-filter"
     },
     {
       "name": "Aba de terminal",
       "kind": "nav",
-      "html": "<div class=\"ds-tab\"><span class=\"ds-dot\"></span><button role=\"tab\" aria-selected=\"true\">PowerShell 1</button></div>",
-      "css": ".ds-tab{font:12px Space,'Segoe UI',sans-serif;position:relative;display:flex;align-items:center;gap:7px;min-width:160px;max-width:240px;height:40px;padding:0 8px 0 13px;border-right:1px solid var(--line,#2a332d);background:var(--surface,#111a14);color:var(--text,#f1f5ef)}.ds-tab:after{content:'';position:absolute;height:2px;bottom:0;left:0;right:0;background:var(--green,#a3ff12)}.ds-dot{width:6px;height:6px;border-radius:50%;background:var(--green,#a3ff12)}.ds-tab button{font:inherit;background:transparent;color:inherit;border:0;flex:1;text-align:left;padding:8px 0;cursor:pointer}.ds-tab button:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}",
-      "refersTo": "terminal-tab-active"
+      "html": "<div class=\"ds-tab\"><span class=\"ds-dot\"></span><button role=\"tab\" aria-selected=\"true\">PowerShell 1</button><button class=\"ds-rename\" aria-label=\"Renomear PowerShell 1\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m15 4 5 5M4 20l5-1L21 7l-5-5L4 14z\"/></svg></button></div>",
+      "css": ".ds-tab{font:12px Space,'Segoe UI',sans-serif;position:relative;display:flex;align-items:center;gap:7px;min-width:215px;max-width:290px;height:40px;padding:0 8px 0 13px;border-right:1px solid var(--line,#2a332d);background:#192416;color:var(--text,#f1f5ef)}.ds-tab:after{content:'';position:absolute;height:1px;bottom:0;left:0;right:0;background:var(--green,#a3ff12)}.ds-dot{width:6px;height:6px;border-radius:0;background:var(--green,#a3ff12)}.ds-tab button{font:inherit;background:transparent;color:inherit;border:0;flex:1;text-align:left;padding:8px 0;cursor:pointer}.ds-tab button:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}.ds-tab button:hover{background:var(--raised,#18221b)}.ds-tab button[role=tab]{min-width:45px}.ds-tab .ds-rename{flex:none;width:22px;height:22px;padding:0;display:flex;align-items:center;justify-content:center}.ds-rename svg{width:13px;height:13px}",
+      "refersTo": "terminal-tab-active",
+      "description": "Nome e cor da sessão ficam na aba, com lápis explícito; clique duplo ou F2 também abrem a renomeação, confirmada por Enter. O painel exibe apenas ícone de pasta e caminho inicial."
     },
     {
       "name": "Contagem de terminais",
       "kind": "chip",
       "html": "<span class=\"ds-count\">2</span>",
-      "css": ".ds-count{font:11px Geist,monospace;color:var(--muted,#9eafa3);background:var(--raised,#18221b);padding:3px 6px;border-radius:4px}",
+      "css": ".ds-count{font:11px Geist,monospace;color:var(--muted,#9eafa3);background:var(--raised,#18221b);padding:3px 6px;border-radius:1px}",
       "refersTo": "terminal-count"
     },
     {
       "name": "Divisor lateral",
       "kind": "custom",
       "html": "<div class=\"ds-resize\" tabindex=\"0\" role=\"separator\" aria-orientation=\"vertical\" aria-label=\"Redimensionar explorador\"></div>",
-      "css": ".ds-resize{width:4px;height:160px;background:var(--line,#2a332d);cursor:col-resize}.ds-resize:hover{background:var(--green,#a3ff12)}.ds-resize:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}"
+      "css": ".ds-resize{width:4px;height:160px;background:#303b2b;cursor:col-resize}.ds-resize:hover{background:var(--green,#a3ff12)}.ds-resize:focus-visible{outline:2px solid var(--green,#a3ff12);outline-offset:-2px}"
     }
   ],
   "narrative": {
     "northStar": "Área de trabalho MCode",
-    "overview": "Interface de trabalho que herda a identidade oficial MCode. A marca aparece no cabeçalho, no estado vazio e nas ações principais; as áreas de código permanecem discretas. O conteúdo e os controles usam português, com densidade de ferramenta desktop e superfícies contínuas.",
+    "overview": "Interface de trabalho que herda a identidade oficial MCode. A marca aparece no cabeçalho, no estado vazio e nas ações principais; as áreas de código permanecem discretas. O conteúdo e os controles usam português, com densidade de ferramenta desktop e superfícies contínuas.\n\nA linguagem de pôster tecnológico aparece na tipografia Anton, nos recortes diagonais e nas linhas verde-acinzentadas do chrome. ASCII amostrado do símbolo oficial e retícula discreta de pontos ficam na arte inicial e na assinatura lateral; editor e terminais mantêm planos lisos para leitura.",
     "keyCharacteristics": [
       "Identidade oficial MCode e verde neon funcional.",
       "Planos escuros, divisórias discretas e controles compactos.",
-      "Tipografia local: Space Grotesk na interface e Geist Mono no código."
+      "Tipografia local: Anton na expressão da marca, Space Grotesk nos controles e Geist Mono no código.",
+      "Recortes diagonais, símbolo oficial em ASCII e halftone restrito à arte de marca."
     ],
     "rules": [
       {
         "name": "The Identificação Rule",
         "body": "Cor de sessão acompanha nome e indicação de estado; nunca substitui o texto.",
         "section": "colors"
+      },
+      {
+        "name": "The Tipografia de trabalho Rule",
+        "body": "Anton expressa a marca; controles usam Space e conteúdo de código usa Geist.",
+        "section": "typography"
       }
     ],
     "dos": [
       "Do preservar proporções e cores dos logos oficiais.",
       "Do usar verde nas ações e nos estados de interação.",
       "Do acompanhar cor de sessão com nome e estado textual.",
-      "Do preservar foco de teclado e alternativas ao arraste."
+      "Do preservar foco de teclado e alternativas ao arraste.",
+      "Do restringir Anton, ASCII e halftone à expressão de marca, mantendo código e terminais lisos."
     ],
     "donts": [
-      "Don't adicionar brilhos, gradientes ou animações decorativas.",
+      "Don't adicionar brilhos ou animações decorativas; as máscaras de gradiente servem apenas ao halftone de marca.",
       "Don't redigitar o logo como tipografia da interface.",
       "Don't inserir afirmações fictícias sobre trabalho executado."
     ]
