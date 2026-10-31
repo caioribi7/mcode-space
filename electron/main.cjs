@@ -1,4 +1,8 @@
-const { app, BrowserWindow, ipcMain, dialog, shell: desktopShell } = require('electron');
+const { app, BrowserWindow, nativeImage, safeStorage, ipcMain, dialog, shell: desktopShell } = require('electron');
+const finance = require('./finance.cjs');
+const {createTodos}=require('./todos.cjs');
+const {createAccount}=require('./account.cjs');
+
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { existsSync } = require('node:fs');
@@ -10,7 +14,10 @@ const files = require('./files.cjs');
 const { cleanWorkspace, savedWorkspaces } = require('./settings.cjs');
 const run = promisify(execFile);
 const sessions = new Map();
+const {AGENTS,resolveAgent,createMonitor}=require('./agents.cjs');
+const agentMonitor=createMonitor();
 const allowedRoots = new Set();
+const agentCommand=id=>resolveAgent(id,process.env,process.platform,[...allowedRoots]);
 let saving = Promise.resolve();
 let win;
 let root = null;
@@ -57,7 +64,7 @@ handle('workspace:initial', async () => {
   }
   if (smoke && root) { allowedRoots.add(root); workspaces.push(cleanWorkspace({root},shells.map(s=>s.id))); }
   root = workspaces.find(w => w.root === saved.activeRoot)?.root || workspaces[0]?.root || null;
-  return { root, workspaces, saved, windowsPty: process.platform === 'win32' ? { backend: 'conpty', buildNumber: Number(require('node:os').release().split('.')[2]) } : null, shells: shells.map(({ id, label }) => ({ id, label })) };
+  return { root, workspaces, saved, windowsPty: process.platform === 'win32' ? { backend: 'conpty', buildNumber: Number(require('node:os').release().split('.')[2]) } : null, agents: AGENTS.map(agent=>({...agent,available:Boolean(agentCommand(agent.id))})), shells: shells.map(({ id, label }) => ({ id, label })) };
 });
 handle('workspace:open', async () => {
   const answer = await dialog.showOpenDialog(win, { title: 'Abrir pasta no MCode Space', properties: ['openDirectory'], defaultPath: root || app.getPath('home') });
@@ -78,7 +85,7 @@ handle('workspace:close', async (candidate, hasDirty) => {
   authorizedRoot(candidate);
   const terminals = [...sessions.entries()].filter(([,terminal]) => terminal.workspaceRoot === candidate);
   if ((terminals.length || hasDirty) && (await dialog.showMessageBox(win, { type: 'question', message: 'Fechar esta aba de pasta?', detail: hasDirty ? 'As alterações não salvas serão descartadas e seus terminais serão encerrados.' : 'Os terminais desta pasta serão encerrados.', buttons: ['Cancelar','Fechar aba'], defaultId: 0, cancelId: 0 })).response !== 1) return false;
-  for (const [id,terminal] of terminals) { terminal.kill(); sessions.delete(id); }
+  for (const [id,terminal] of terminals) { agentMonitor.end(id); terminal.kill(); sessions.delete(id); }
   allowedRoots.delete(candidate); if(root === candidate) root = [...allowedRoots][0] || null;
   return true;
 });
@@ -95,6 +102,26 @@ handle('workspace:save', async settings => {
   return saving;
 });
 handle('workspace:dirty', value => { dirty = value === true; });
+const account=createAccount({app,safeStorage,shell:desktopShell,dialog,nativeImage,getWindow:()=>win});
+const finances=finance.createFinance({account});
+const todos=createTodos({account});
+handle('todos:list',()=>todos.list());
+handle('todos:save',value=>todos.save(value));
+handle('todos:remove',(id,stamp)=>todos.remove(id,stamp));
+handle('account:state',()=>account.state());
+handle('account:configure',value=>account.configure(value));
+handle('account:login',value=>account.login(value));
+handle('account:signup',value=>account.signup(value));
+handle('account:verify',value=>account.verify(value));
+handle('account:oauth',provider=>account.oauth(provider));
+handle('account:cancel',()=>account.cancelOAuth());
+handle('account:logout',()=>account.logout());
+handle('account:profile',value=>account.saveProfile(value));
+handle('account:avatar',()=>account.uploadAvatar());
+handle('finance:status',()=>finances.status());
+handle('finance:read',()=>finances.snapshot());
+handle('finance:add',(kind,value)=>finances.add(kind,value));
+handle('finance:settle',(index,expected)=>finances.settle(index,expected));
 handle('files:list', (candidate, workspaceRoot) => files.list(authorizedRoot(workspaceRoot), candidate));
 handle('files:read', (candidate, workspaceRoot) => files.read(authorizedRoot(workspaceRoot), candidate));
 handle('files:save', (value, workspaceRoot) => files.save(authorizedRoot(workspaceRoot), value));
@@ -112,21 +139,28 @@ handle('markdown:open-link', async value => {
 handle('files:confirm-discard', async name => (await dialog.showMessageBox(win, { type: 'question', message: `Descartar alterações em ${String(name).slice(0, 180)}?`, buttons: ['Continuar editando', 'Descartar'], cancelId: 0, defaultId: 0 })).response === 1);
 handle('terminal:create', async options => {
   if (sessions.size >= 12) throw new Error('O limite é de 12 terminais. Encerre um para abrir outro.');
-  const chosen = shells.find(s => s.id === options?.shell) || shells[0];
+  const agent=AGENTS.find(a=>'agent:'+a.id===options?.shell);
+  if(options?.shell?.startsWith('agent:')&&!agent)throw new Error('Agente desconhecido.');
+  const launch=agent?agentCommand(agent.id):null;
+  if(agent&&!launch)throw new Error(`${agent.label} não está instalado ou não foi encontrado no PATH. Instale o CLI e entre na sua conta antes de abrir este agente.`);
+  const chosen = agent?{id:'agent:'+agent.id,label:agent.label,...launch}:shells.find(s => s.id === options?.shell) || shells[0];
   const workspaceRoot = authorizedRoot(options?.root);
   const cwd = await files.inside(workspaceRoot, options?.cwd || '.');
   if (!(await fs.stat(cwd)).isDirectory()) throw new Error('Escolha uma pasta para iniciar o terminal.');
   const id = randomUUID();
+  const startedAt=Date.now();
   const terminal = pty.spawn(chosen.command, chosen.args, { name: 'xterm-256color', cols: 100, rows: 28, cwd, env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' }, useConpty: true, useConptyDll: true });
   sessions.set(id, terminal);
+  if(agent)agentMonitor.start(id,agent.id,terminal.pid,cwd,startedAt);
   terminal.workspaceRoot = workspaceRoot;
   terminal.onData(data => { if (!win.isDestroyed()) win.webContents.send('terminal:data', { id, data }); });
-  terminal.onExit(({ exitCode }) => { sessions.delete(id); if (!win.isDestroyed()) win.webContents.send('terminal:exit', { id, exitCode }); });
-  return { id, shell: chosen.id, label: chosen.label, cwd: options?.cwd || '.' };
+  terminal.onExit(({ exitCode }) => { agentMonitor.end(id,exitCode); sessions.delete(id); if (!win.isDestroyed()) win.webContents.send('terminal:exit', { id, exitCode }); });
+  return { id, shell: chosen.id, agent:agent?.id||null, label: chosen.label, cwd: options?.cwd || '.' };
 });
 handle('terminal:write', (id, data) => { if (typeof data !== 'string' || data.length > 1024 * 1024) throw new Error('Entrada inválida.'); session(id).write(data); });
 handle('terminal:resize', (id, cols, rows) => { if (!Number.isInteger(cols) || !Number.isInteger(rows) || cols < 2 || rows < 1 || cols > 500 || rows > 250) return; sessions.get(id)?.resize(cols, rows); });
-handle('terminal:close', id => { sessions.get(id)?.kill(); sessions.delete(id); });
+handle('agents:usage',()=>agentMonitor.read());
+handle('terminal:close', id => { agentMonitor.end(id); sessions.get(id)?.kill(); sessions.delete(id); });
 handle('git:status', async candidate => {
   if (!candidate && !root) return null;
   const workspaceRoot = authorizedRoot(candidate);
@@ -143,7 +177,7 @@ handle('git:status', async candidate => {
 app.whenReady().then(async () => {
   win = new BrowserWindow({ width: 1480, height: 940, minWidth: 900, minHeight: 620, title: 'MCode Space', backgroundColor: '#0B100D', show: !smoke,
     icon: path.join(__dirname, '../dist/assets/icon.ico'),
-    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true, spellcheck: false },
+    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true, backgroundThrottling: !smoke, spellcheck: false },
   });
   win.setMenuBarVisibility(false);
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -158,6 +192,6 @@ app.whenReady().then(async () => {
   });
   win.on('closed', stopAll);
   await win.loadFile(entry);
-  if (smoke) require('./smoke.cjs')({ app, win, pty, shells, files, sessions, setRoot: value => { root = value; } });
+  if (smoke) require('./smoke.cjs')({ app, win, pty, shells, files, sessions, agentMonitor, setRoot: value => { root = value; } });
 });
 app.on('window-all-closed', () => app.quit());

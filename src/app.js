@@ -6,6 +6,11 @@ import './workspace.css';
 import { renderBrandAscii } from './brand-ascii';
 import { icon } from './icons';
 import { renderMarkdown } from './markdown';
+import { setupAccount } from './account';
+import { setupTodos } from './todos';
+import { setupMonitor } from './monitor';
+import { setupSidebars } from './sidebars';
+import { setupFinance } from './finance';
 import { MOSAICS, terminalLayout } from './layouts.mjs';
 
 const api = window.space;
@@ -22,11 +27,12 @@ let moveFeedbackTimer = null;
 let refreshing = false, folderMenuEntry = null;
 let restoring = false;
 const pendingOutput = new Map();
+const pendingExits = new Map();
 const basename = value => value.split(/[\\/]/).filter(Boolean).at(-1) || value;
 function notify(message) { $('toast').textContent = String(message).replace(/^Error invoking remote method '[^']+': Error: /, ''); $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 6500); }
 function action(fn) { return (...args) => { try { return Promise.resolve(fn(...args)).catch(error => notify(error.message)); } catch(error) { notify(error.message); } }; }
 function button(label, glyph, fn) { const b = document.createElement('button'); b.className='icon-button'; b.title=label; b.setAttribute('aria-label',label); b.innerHTML=icon(glyph); b.onclick=action(fn); return b; }
-function persist() { if(restoring)return;clearTimeout(saveTimer); saveTimer=setTimeout(() => api.saveWorkspace({activeRoot:state.root,workspaces:workspaces.map(w=>({root:w.root,tabs:w.terminals.map(({name,shell,cwd,color})=>({name,shell,cwd,color})),layout:w.layout,mosaic:w.mosaic,sidebar:w.sidebar}))}).catch(e=>notify(e.message)),180); }
+function persist() { if(restoring)return;clearTimeout(saveTimer); saveTimer=setTimeout(() => api.saveWorkspace({activeRoot:state.root,workspaces:workspaces.map(w=>({root:w.root,tabs:w.terminals.map(({name,shell,cwd,color,glyph})=>({name,shell,cwd,color,glyph})),layout:w.layout,mosaic:w.mosaic,sidebar:w.sidebar}))}).catch(e=>notify(e.message)),180); }
 function updateDirty() { api.setDirty(workspaces.some(w=>w.files.some(f=>f.text!==f.saved))).catch(e=>notify(e.message));renderWorkspaceTabs(); }
 function fitAll() { requestAnimationFrame(() => { for (const item of state.terminals) { if (!item.panel.hidden && item.host.clientWidth>0) { try { item.fit.fit(); if (!item.ended) api.resize(item.id, Math.min(500,item.term.cols), Math.min(250,item.term.rows)).catch(()=>{}); } catch {} } } }); }
 const resizeObserver=new ResizeObserver(fitAll);
@@ -169,6 +175,7 @@ async function openFile(candidate,workspace=state) {
   workspace.file=file;if(workspace===state){renderEditor();renderTree();fitAll();}
 }
 function renderEditor() {
+  document.body.classList.toggle('editor-focused', Boolean(state.file?.fullEditor));
   const file=state.file;$('editor').hidden=!file;$('editor-resize').hidden=!file;
   $('file-tabs').replaceChildren();
   for(const item of state.files){
@@ -179,6 +186,10 @@ function renderEditor() {
   if(file){$('code').value=file.text;$('code').scrollTop=file.scroll||0;$('editor-path').textContent=file.path;updateLines();$('file-state').textContent=file.text!==file.saved?'Alterações não salvas':'UTF-8';$('status-file').textContent=basename(file.path);}
   else $('status-file').textContent='MCode Space';
   renderMarkdownMode();
+  $('editor-fullscreen').setAttribute('aria-pressed',String(Boolean(file?.fullEditor)));
+  $('editor-focus-label').textContent=file?.fullEditor?'Voltar aos terminais':'Expandir editor';
+  $('editor-fullscreen').firstElementChild.innerHTML=icon(file?.fullEditor?'minimize':'maximize');
+  fitAll();
 }
 function renderMarkdownMode(){
   const file=state.file,isMarkdown=Boolean(file&&/\.(md|markdown)$/i.test(file.path));
@@ -218,33 +229,46 @@ $('code').addEventListener('scroll',()=>{$('line-numbers').scrollTop=$('code').s
 $('code').addEventListener('keydown',event=>{if(event.key==='Tab'){event.preventDefault();const field=event.target,start=field.selectionStart;field.setRangeText('  ',start,field.selectionEnd,'end');field.dispatchEvent(new Event('input'));}});
 
 api.onData(({id,data})=>{const item=allTerminals().find(t=>t.id===id);if(item)item.term.write(data);else{const old=pendingOutput.get(id)||'';pendingOutput.set(id,(old+data).slice(-256000));}});
-api.onExit(({id,exitCode})=>{const item=allTerminals().find(t=>t.id===id);if(!item)return;item.ended=true;item.term.writeln(`\r\n\x1b[90mProcesso encerrado (${exitCode}). Abra um novo terminal para continuar.\x1b[0m`);item.panel.classList.add('ended');renderTabs();});
+function terminalExited(id,exitCode){const item=allTerminals().find(t=>t.id===id);if(!item){pendingExits.set(id,exitCode);return;}item.ended=true;item.term.writeln(`\r\n\x1b[90mProcesso encerrado (${exitCode}). Abra um novo terminal para continuar.\x1b[0m`);item.panel.classList.add('ended');renderTabs();}
+api.onExit(({id,exitCode})=>terminalExited(id,exitCode));
 async function newTerminal(options={}) {
   if(!state.root)return openFolder();
   const workspace=state;
-  const created=await api.createTerminal({shell:options.shell||$('shell-type').value,cwd:options.cwd||'.',root:workspace.root});
+  const created=await api.createTerminal({shell:options.shell||(restoring?environment.shells[0].id:$('shell-type').value),cwd:options.cwd||'.',root:workspace.root});
   const term=new Terminal({windowsPty:state.windowsPty,fontFamily:'Geist, Consolas, monospace',fontSize:12,lineHeight:1.3,cursorBlink:true,cursorStyle:'bar',scrollback:5000,allowProposedApi:false,theme:{background:'#0b100d',foreground:'#dce7df',cursor:'#a3ff12',selectionBackground:'#a3ff1240',black:'#18221b',red:'#f28b82',green:'#a3ff12',yellow:'#efc67b',blue:'#86baff',magenta:'#eca2ca',cyan:'#80cbc4',white:'#f1f5ef',brightBlack:'#9eafa3'}});
   const fit=new FitAddon();term.loadAddon(fit);
-  const item={...created,name:options.name||`${created.label} ${state.terminals.length+1}`,color:colors[options.color]?options.color:'green',term,fit,ended:false};
+  const item={...created,name:options.name||`${created.label} ${state.terminals.length+1}`,color:colors[options.color]?options.color:'green',glyph:['terminal','code','branch','folder','server','database','rocket'].includes(options.glyph)?options.glyph:'terminal',term,fit,ended:false};
   const panel=document.createElement('div');panel.className='terminal-panel';panel.setAttribute('role','tabpanel');panel.style.setProperty('--tab-color',colors[item.color]);
   const head=document.createElement('div');head.className='panel-header';
   const location=document.createElement('span');location.className='panel-path';location.textContent=item.cwd==='.'?basename(state.root):item.cwd;location.title='Pasta inicial: '+item.cwd;item.locationNode=location;
   head.innerHTML=icon('folder');head.append(location);panel.append(head);panel.setAttribute('aria-label',item.name);
   const host=document.createElement('div');host.className='terminal-host';panel.append(host);item.host=host;item.panel=panel;
   panel.addEventListener('pointerdown',()=>activateTerminal(item,false));
+  panel.addEventListener('focusin',()=>{if(state.active!==item.id)activateTerminal(item,false);});
   panel.ondragover=e=>{if(e.dataTransfer.types.includes('application/mcode-file')){e.preventDefault();panel.classList.add('drop-target');}};
   panel.ondragleave=()=>panel.classList.remove('drop-target');
   panel.ondrop=action(async e=>{e.preventDefault();panel.classList.remove('drop-target');const entry=readDrop(e);if(!entry)return;if(entry.directory)await newTerminal({cwd:entry.path});else await openFile(entry.path);});
   $('terminal-panels').append(panel);term.open(host);term.onData(data=>{if(!item.ended)api.write(item.id,data).catch(e=>notify(e.message));});
   term.attachCustomKeyEventHandler(event=>!(event.ctrlKey&&['o','b','s'].includes(event.key.toLowerCase()))&&!(event.ctrlKey&&event.shiftKey&&['T','W','G','ArrowLeft','ArrowRight'].includes(event.key)));
-  workspace.terminals.push(item);workspace.active=item.id;if(pendingOutput.has(item.id)){term.write(pendingOutput.get(item.id));pendingOutput.delete(item.id);}
+  workspace.terminals.push(item);workspace.active=item.id;if(created.agent)window.dispatchEvent(new CustomEvent('mcode-agent-started'));if(pendingOutput.has(item.id)){term.write(pendingOutput.get(item.id));pendingOutput.delete(item.id);}
+  if(pendingExits.has(item.id)){terminalExited(item.id,pendingExits.get(item.id));pendingExits.delete(item.id);}
   if(workspace===state){renderTerminals();setTimeout(()=>term.focus(),0);}else panel.remove();persist();return item;
 }
+function renderPanelHeader(item){
+  const head=item.panel.querySelector('.panel-header');head.replaceChildren();
+  const glyph=document.createElement('span');glyph.className='terminal-glyph';glyph.innerHTML=icon(item.glyph);glyph.style.color=colors[item.color];
+  const name=document.createElement('span');name.className='panel-name';name.textContent=item.name+(item.ended?' (encerrado)':'');name.title=item.name;
+  name.ondblclick=()=>renameTerminal(item);
+  const controls=document.createElement('div');controls.className='panel-controls';
+  controls.append(button(`Editar ${item.name}`,'edit',()=>renameTerminal(item)),button(`Mover ${item.name} para esquerda`,'left',()=>moveTerminal(item,-1)),button(`Mover ${item.name} para direita`,'right',()=>moveTerminal(item,1)),button(`Fechar ${item.name}`,'close',()=>closeTerminal(item)));
+  head.append(glyph,name,item.locationNode,controls);
+}
 function renderTabs(){
-  $('terminal-tabs').replaceChildren();
+  $('terminal-tabs').replaceChildren();$('terminal-tabs').hidden=state.layout!=='tabs';
   for(const item of state.terminals){
     const tab=document.createElement('div');tab.className='terminal-tab'+(item.id===state.active?' active':'');tab.style.setProperty('--tab-color',colors[item.color]);tab.draggable=true;tab.dataset.id=item.id;
-    const dot=document.createElement('span');dot.className='tab-dot';if(item.ended)dot.style.background='#9eafa3';
+    const dot=document.createElement('span');dot.className='terminal-glyph';dot.innerHTML=icon(item.glyph);dot.style.color=item.ended?'#9eafa3':colors[item.color];
+    renderPanelHeader(item);
     const activate=document.createElement('button');activate.setAttribute('role','tab');activate.setAttribute('aria-selected',String(item.id===state.active));activate.textContent=item.name+(item.ended?' (encerrado)':'');activate.title='Clique duplo ou F2 para renomear';activate.onclick=()=>activateTerminal(item);activate.ondblclick=()=>renameTerminal(item);activate.onkeydown=e=>{if(e.key==='F2'){e.preventDefault();renameTerminal(item);}};
     tab.oncontextmenu=e=>{e.preventDefault();renameTerminal(item);};
     tab.append(dot,activate,button(`Renomear ${item.name}`,'edit',()=>renameTerminal(item)),button(`Mover ${item.name} para esquerda`,'left',()=>moveTerminal(item,-1)),button(`Mover ${item.name} para direita`,'right',()=>moveTerminal(item,1)),button(`Fechar ${item.name}`,'close',()=>closeTerminal(item)));
@@ -274,8 +298,8 @@ async function closeTerminal(item){
   if(!item.ended&&!window.confirm(`Encerrar ${item.name} e seus processos?`))return;
   await api.closeTerminal(item.id);item.term.dispose();item.panel.remove();state.terminals=state.terminals.filter(t=>t!==item);if(state.active===item.id)state.active=state.terminals.at(-1)?.id||null;renderTerminals();persist();
 }
-function renameTerminal(item){renaming=item;$('terminal-name').value=item.name;$('terminal-color').value=item.color;if(!$('rename-dialog').open)$('rename-dialog').showModal();$('terminal-name').focus();$('terminal-name').select();}
-$('rename-form').addEventListener('submit',event=>{event.preventDefault();if(!renaming)return;renaming.name=$('terminal-name').value.trim()||renaming.name;renaming.color=$('terminal-color').value;renaming.panel.setAttribute('aria-label',renaming.name);renaming.panel.style.setProperty('--tab-color',colors[renaming.color]);renderTabs();persist();$('rename-dialog').close('save');renaming=null;});
+function renameTerminal(item){renaming=item;$('terminal-name').value=item.name;$('terminal-color').value=item.color;$('terminal-icon-choice').value=item.glyph;if(!$('rename-dialog').open)$('rename-dialog').showModal();$('terminal-name').focus();$('terminal-name').select();}
+$('rename-form').addEventListener('submit',event=>{event.preventDefault();if(!renaming)return;renaming.name=$('terminal-name').value.trim()||renaming.name;renaming.color=$('terminal-color').value;renaming.glyph=$('terminal-icon-choice').value;renaming.panel.setAttribute('aria-label',renaming.name);renaming.panel.style.setProperty('--tab-color',colors[renaming.color]);renderTabs();persist();$('rename-dialog').close('save');renaming=null;});
 $('cancel-rename').onclick=()=>$('rename-dialog').close('cancel');
 $('rename-dialog').addEventListener('close',()=>{renaming=null;});
 function readDrop(event){try{return JSON.parse(event.dataTransfer.getData('application/mcode-file'));}catch{return null;}}
@@ -295,8 +319,15 @@ $('editor-resize').onkeydown=e=>{if(['ArrowUp','ArrowDown'].includes(e.key)){e.p
 $('collapse-tree').innerHTML=icon('collapse');$('terminal-icon').innerHTML=icon('terminal');$('hide-editor').innerHTML=icon('up');
 $('markdown-edit').innerHTML=icon('code');$('markdown-preview').innerHTML=icon('eye');
 for(const node of document.querySelectorAll('[data-icon]'))node.innerHTML=icon(node.dataset.icon);
-function toggleExplorer(){const hidden=document.body.classList.toggle('sidebar-hidden');$('toggle-explorer').innerHTML=icon(hidden?'sidebarOpen':'sidebarClose');$('toggle-explorer').setAttribute('aria-expanded',String(!hidden));$('toggle-explorer').setAttribute('aria-label',hidden?'Mostrar explorador':'Recolher explorador');$('toggle-explorer').title=(hidden?'Mostrar':'Recolher')+' explorador (Ctrl B)';fitAll();}
+function toggleExplorer(){const hidden=document.body.classList.toggle('sidebar-hidden');$('toggle-explorer').innerHTML=icon(hidden?'sidebarOpen':'sidebarClose');$('toggle-explorer').setAttribute('aria-expanded',String(!hidden));$('toggle-explorer').setAttribute('aria-label',hidden?'Mostrar lateral':'Recolher lateral');$('toggle-explorer').title=(hidden?'Mostrar':'Recolher')+' lateral (Ctrl B)';fitAll();}
 $('toggle-explorer').innerHTML=icon('sidebarClose');$('collapse-explorer').innerHTML=icon('sidebarClose');$('toggle-explorer').onclick=toggleExplorer;$('collapse-explorer').onclick=toggleExplorer;
+$('expand-explorer').onclick=toggleExplorer;
+$('editor-fullscreen').onclick=()=>{if(state.file){state.file.fullEditor=!state.file.fullEditor;renderEditor();}};
+setupAccount({api,icon,notify});
+setupFinance({api,icon,fitAll,notify});
+setupTodos({api,icon,notify});
+setupSidebars({icon,fitAll});
+setupMonitor({api,icon,notify,focus:async id=>{const workspace=workspaces.find(w=>w.terminals.some(t=>t.id===id));if(!workspace)return notify('Este terminal já foi fechado.');await activateWorkspace(workspace);if(workspace.file?.fullEditor){workspace.file.fullEditor=false;renderEditor();}activateTerminal(workspace.terminals.find(t=>t.id===id));}});
 for(const [value,label] of Object.entries(MOSAICS)){const option=document.createElement('option');option.value=value;option.textContent=label;$('mosaic-layout').append(option);}
 $('mosaic-layout').onchange=()=>{state.mosaic=$('mosaic-layout').value;renderTerminals();persist();};
 for(const b of document.querySelectorAll('button[data-layout]')){b.innerHTML=icon(b.dataset.layout);b.onclick=()=>{state.layout=b.dataset.layout;renderTerminals();persist();};}
@@ -318,6 +349,7 @@ async function init(){
   if(!api){notify('Abra este aplicativo pelo Electron: execute npm start.');return;}
   const initial=await api.initial();environment={shells:initial.shells,windowsPty:initial.windowsPty||undefined};state=emptyWorkspace();restoring=true;
   for(const shell of environment.shells){const option=document.createElement('option');option.value=shell.id;option.textContent=shell.label;$('shell-type').append(option);}
+  const agentGroup=document.createElement('optgroup');agentGroup.label='Agentes de IA';for(const agent of initial.agents||[]){const option=document.createElement('option');option.value='agent:'+agent.id;option.textContent=agent.label+(agent.available?'':' · não instalado');option.disabled=!agent.available;agentGroup.append(option);}$('shell-type').append(agentGroup);
   for(const saved of initial.workspaces||[]){const workspace=emptyWorkspace(saved.root,saved);workspaces.push(workspace);await activateWorkspace(workspace);for(const tab of saved.tabs){try{await newTerminal(tab);}catch(e){notify('Não foi possível restaurar um terminal: '+e.message);}}if(!workspace.terminals.length){try{await newTerminal();}catch(e){notify(e.message);}}}
   const active=workspaces.find(w=>w.root===initial.root)||workspaces[0];if(active)await activateWorkspace(active);
   applyRoot();renderWorkspaceTabs();renderTree();renderEditor();renderTerminals();restoring=false;persist();

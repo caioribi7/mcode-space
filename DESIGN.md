@@ -239,3 +239,4 @@ O símbolo ASCII deriva do SVG oficial, amostrado em canvas de 64 × 32 células
 - **Don't** adicionar brilhos ou animações decorativas; as máscaras de gradiente servem apenas ao halftone de marca.
 - **Don't** redigitar o logo como tipografia da interface.
 - **Don't** inserir afirmações fictícias sobre trabalho executado.
+    

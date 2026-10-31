@@ -7,6 +7,7 @@ function cleanWorkspace(value, shellIds) {
       name: String(tab.name || 'Terminal').slice(0, 60),
       shell: shellIds.includes(tab.shell) ? tab.shell : shellIds[0],
       cwd: typeof tab.cwd === 'string' ? tab.cwd : '.',
+      glyph: ['terminal','code','branch','folder','server','database','rocket'].includes(tab.glyph) ? tab.glyph : 'terminal',
       color: ['green', 'blue', 'amber', 'pink'].includes(tab.color) ? tab.color : 'green',
     })),
     layout: LAYOUTS.includes(value.layout) ? value.layout : 'tabs',

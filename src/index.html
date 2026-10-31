@@ -12,23 +12,61 @@
     <div class="brand"><img src="assets/mcode.svg" alt="MCode" width="137" height="42"><span class="brand-divider"></span><span class="space-name">Space</span></div>
     <button id="toggle-explorer" class="icon-button" title="Recolher explorador (Ctrl B)" aria-label="Recolher explorador" aria-expanded="true"></button>
     <div id="workspace-name" class="workspace-name">Seu espaço de trabalho</div>
+    <button id="show-explorer" class="button subtle selected" aria-expanded="true"><span data-icon="folder"></span>Explorador</button>
+    <button id="toggle-finance" class="button subtle" aria-expanded="false"><span data-icon="finance"></span>Financeiro</button>
+    <button id="toggle-todo" class="button subtle" aria-expanded="false"><span data-icon="todo"></span>Tarefas</button>
+    <button id="toggle-monitor" class="button subtle" aria-expanded="false" hidden><span data-icon="activity"></span>Monitor de uso</button>
+    <button id="open-account" class="button subtle"><span data-icon="user"></span><span id="account-button-label">Minha conta</span></button>
     <button id="open-folder" class="button primary">Abrir pasta <kbd>Ctrl O</kbd></button>
   </header>
   <nav id="workspace-tabs" class="workspace-tabs" aria-label="Pastas abertas"></nav>
   <main class="app-layout">
+    <div class="explorer-rail"><button id="expand-explorer" class="icon-button" title="Mostrar lateral (Ctrl B)" aria-label="Mostrar lateral" aria-expanded="false"><span data-icon="sidebarOpen"></span></button></div>
     <aside id="sidebar" class="sidebar">
       <div class="section-head"><h1>Explorador</h1><div class="head-actions"><button id="collapse-tree" class="icon-button" title="Recolher pastas" aria-label="Recolher pastas"></button><button id="collapse-explorer" class="icon-button" title="Recolher explorador" aria-label="Recolher explorador"></button></div></div>
       <div class="filter-wrap"><input id="file-filter" type="search" placeholder="Filtrar arquivos visíveis…" aria-label="Filtrar arquivos visíveis"></div>
       <div id="tree-root" class="tree-root"></div>
       <div id="tree" class="tree" aria-label="Arquivos da pasta"></div>
       <div id="move-feedback" class="move-feedback" role="status" hidden></div>
-      <div class="sidebar-signature" aria-hidden="true"><img src="assets/symbol.svg" alt="" width="42" height="42"><span>ESPAÇO<br>PRA CRIAR.</span><span class="signature-ascii">{<br>_/</span></div>
+      <div class="sidebar-signature" aria-hidden="true"><img src="assets/symbol.svg" alt="" width="42" height="42"><span>ESPAÇO<br>PRA CRIAR.</span></div>
       <div class="sidebar-bottom"><span class="status-dot"></span><span>Local. Do seu jeito.</span></div>
     </aside>
-    <div id="sidebar-resize" class="resize-handle" role="separator" tabindex="0" aria-label="Largura do explorador" aria-orientation="vertical"></div>
+    <aside id="finance-sidebar" class="sidebar finance-sidebar" aria-label="Controle financeiro" hidden>
+      <div class="section-head"><h1>Financeiro</h1><button id="close-finance" class="icon-button" aria-label="Voltar ao explorador" title="Voltar ao explorador"><span data-icon="folder"></span></button></div>
+      <div class="finance-scroll">
+        <p class="finance-brand">Seu caixa.<br>Seu controle.</p>
+        <div class="finance-period"><label>Mês<input id="finance-month" type="month" aria-label="Mês do financeiro"></label></div>
+        <nav class="finance-tabs" aria-label="Áreas financeiras"><button data-finance="summary" aria-pressed="true">Resumo</button><button data-finance="ledger" aria-pressed="false">Movimentos</button><button data-finance="fixed" aria-pressed="false">Fixos</button><button data-finance="clients" aria-pressed="false">Clientes</button></nav>
+        <p id="finance-status" role="status">Entre na sua conta para carregar o financeiro.</p>
+        <div class="finance-connection"><button id="finance-connect" class="button subtle">Minha conta</button><button id="finance-sync" class="icon-button" title="Sincronizar" aria-label="Sincronizar"><span data-icon="sync"></span></button></div>
+        <div id="finance-setup" class="finance-setup"><p>Caixa compartilhado entre todas as contas MCode.</p></div>
+        <div id="finance-content"></div>
+        <button id="finance-new" class="button primary" disabled><span data-icon="plus"></span>Novo lançamento</button>
+        <form id="finance-form" hidden><div id="finance-fields"></div><p id="finance-form-error" role="alert"></p><div class="finance-form-actions"><button type="button" id="finance-cancel" class="button subtle">Cancelar</button><button id="finance-save" type="submit" class="button primary">Salvar</button></div></form>
+      </div>
+      <div class="sidebar-bottom"><span class="status-dot"></span><span>MCODE / FINANÇAS</span></div>
+    </aside>
+    <aside id="todo-sidebar" class="sidebar todo-sidebar" aria-label="Tarefas compartilhadas" hidden>
+      <div class="section-head"><h1>Tarefas</h1><button id="close-todo" class="icon-button" title="Voltar ao explorador" aria-label="Voltar ao explorador"><span data-icon="folder"></span></button></div>
+      <div class="finance-scroll"><p class="finance-brand">Uma equipe.<br>Próximo passo.</p><p class="todo-intro">Lista compartilhada entre todas as contas MCode.</p>
+      <div class="finance-connection"><span id="todo-status" role="status">Entre para carregar as tarefas.</span><button id="todo-sync" class="icon-button" title="Sincronizar tarefas" aria-label="Sincronizar tarefas"><span data-icon="sync"></span></button></div>
+      <button id="todo-account" class="button subtle">Minha conta</button>
+      <nav class="finance-tabs" aria-label="Filtrar tarefas"><button data-todo-filter="pending" aria-pressed="true">Pendentes</button><button data-todo-filter="done" aria-pressed="false">Concluídas</button><button data-todo-filter="all" aria-pressed="false">Todas</button></nav>
+      <p id="todo-count" class="todo-intro"></p><button id="todo-new" class="button primary" disabled><span data-icon="plus"></span>Nova tarefa</button>
+      <form id="todo-form" hidden><h2 id="todo-form-title">Nova tarefa</h2><label>Título<input name="title" required maxlength="160" placeholder="O que precisa ser feito?"></label><label>Notas<textarea name="notes" maxlength="2000" rows="3"></textarea></label><label>Prioridade<select name="priority"><option value="normal">Normal</option><option value="high">Alta</option><option value="low">Baixa</option></select></label><label>Prazo<input name="due_on" type="date"></label><p id="todo-error" role="alert"></p><div class="finance-form-actions"><button id="todo-cancel" type="button" class="button subtle">Cancelar</button><button id="todo-save" type="submit" class="button primary">Salvar tarefa</button></div></form>
+      <div id="todo-list" aria-live="polite"></div></div>
+      <div class="sidebar-bottom"><span class="status-dot"></span><span>MCODE / EQUIPE</span></div>
+    </aside>
+    <aside id="monitor-sidebar" class="sidebar monitor-sidebar" hidden>
+      <div class="section-head"><h1>Monitor de uso</h1><button id="close-monitor" class="icon-button" aria-label="Voltar ao explorador" title="Voltar ao explorador"><span data-icon="close"></span></button></div>
+      <div class="finance-scroll"><p class="finance-brand">Agentes.<br>Em atividade.</p><p class="monitor-note">Tokens e limites registrados pelos agentes. Atualização a cada 3 segundos.</p><details class="monitor-note"><summary>Como o consumo é contado</summary><p>Consumo por agente e pasta desde sua primeira abertura aqui; inclui sessões locais iniciadas fora do Space nessa pasta. Cache pode fazer parte da entrada. Limites refletem o último registro do CLI.</p></details><p id="monitor-status" role="status"></p><div id="monitor-list"></div></div>
+      <div class="sidebar-bottom"><span class="status-dot"></span><span>MCODE / LOCAL</span></div>
+    </aside>
+    <div id="sidebar-resize" class="resize-handle" role="separator" tabindex="0" aria-label="Largura da lateral" aria-orientation="vertical"></div>
     <section class="workbench">
       <section id="editor" class="editor" aria-label="Editor de arquivos" hidden>
         <div class="editor-bar"><div id="file-tabs" class="file-tabs" role="tablist" aria-label="Arquivos abertos"></div><div id="markdown-modes" class="markdown-modes" role="group" aria-label="Modo do arquivo Markdown" hidden><button id="markdown-edit" class="icon-button selected" aria-label="Editar Markdown" title="Editar Markdown" aria-pressed="true"></button><button id="markdown-preview" class="icon-button" aria-label="Visualizar Markdown" title="Visualizar Markdown" aria-pressed="false"></button></div><button id="save-file" class="button subtle">Salvar <kbd>Ctrl S</kbd></button><button id="hide-editor" class="icon-button" aria-label="Ocultar editor" title="Ocultar editor"></button></div>
+        <div class="editor-focus-bar"><button id="editor-fullscreen" class="button subtle" aria-pressed="false"><span data-icon="maximize"></span><span id="editor-focus-label">Expandir editor</span></button></div>
         <div class="editor-path" id="editor-path"></div>
         <div class="code-area"><div id="line-numbers" class="line-numbers" aria-hidden="true">1</div><textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Conteúdo do arquivo"></textarea></div>
         <article id="markdown-content" class="markdown-content" aria-label="Prévia de Markdown" tabindex="0" hidden></article>
@@ -46,11 +84,28 @@
         </div>
       </section>
     </section>
+
   </main>
   <footer class="statusbar"><div><span class="status-dot"></span><span id="connection">Pronto para começar</span><button id="git-status" class="git-status" title="Atualizar estado do Git"></button></div><div><span id="status-layout">Abas</span><span id="status-file">MCode Space</span></div></footer>
   <div id="toast" class="toast" role="status" hidden></div>
   <div id="folder-menu" class="folder-menu" role="menu" hidden><button id="folder-new-tab" role="menuitem"><span data-icon="folderPlus"></span>Abrir em nova aba</button><button id="folder-new-terminal" role="menuitem"><span data-icon="terminal"></span>Novo terminal aqui</button></div>
-  <dialog id="rename-dialog"><form id="rename-form"><h2>Renomear terminal</h2><label for="terminal-name">Nome</label><input id="terminal-name" maxlength="60" required><label for="terminal-color">Cor de identificação</label><select id="terminal-color"><option value="green">Verde MCode</option><option value="blue">Azul</option><option value="amber">Âmbar</option><option value="pink">Rosa</option></select><div class="dialog-actions"><button id="cancel-rename" type="button" class="button subtle">Cancelar</button><button value="save" type="submit" class="button primary">Salvar</button></div></form></dialog>
+  <dialog id="rename-dialog"><form id="rename-form"><h2>Renomear terminal</h2><label for="terminal-name">Nome</label><input id="terminal-name" maxlength="60" required><label for="terminal-icon-choice">Ícone</label><select id="terminal-icon-choice"><option value="terminal">Terminal</option><option value="code">Código</option><option value="branch">Git</option><option value="folder">Pasta</option><option value="server">Servidor</option><option value="database">Banco de dados</option><option value="rocket">Projeto</option></select><label for="terminal-color">Cor de identificação</label><select id="terminal-color"><option value="green">Verde MCode</option><option value="blue">Azul</option><option value="amber">Âmbar</option><option value="pink">Rosa</option></select><div class="dialog-actions"><button id="cancel-rename" type="button" class="button subtle">Cancelar</button><button value="save" type="submit" class="button primary">Salvar</button></div></form></dialog>
+  <dialog id="account-dialog" class="account-dialog" aria-labelledby="account-title">
+    <div class="account-heading"><div><span class="account-brand">MCODE / CONTA</span><h2 id="account-title">Seu espaço começa aqui.</h2></div><button id="account-close" type="button" class="icon-button" title="Fechar conta" aria-label="Fechar conta"><span data-icon="close"></span></button></div>
+    <p id="account-status" role="status"></p>
+    <details id="account-config"><summary>Conexão Supabase</summary><form id="account-config-form"><label>URL do projeto<input name="url" type="url" required placeholder="https://seu-projeto.supabase.co"></label><label>Chave pública<input name="key" type="password" required autocomplete="off" placeholder="sb_publishable_…"></label><button class="button primary" type="submit">Conectar projeto</button></form></details>
+    <section id="account-auth">
+      <div class="account-providers"><button class="button" data-provider="google" type="button">Continuar com Google</button><button class="button" data-provider="github" type="button"><span data-icon="github"></span>Continuar com GitHub</button></div>
+      <div class="account-or">ou use seu email</div>
+      <div class="account-switch"><button id="account-login-mode" type="button" aria-pressed="true">Entrar</button><button id="account-signup-mode" type="button" aria-pressed="false">Criar conta</button></div>
+      <form id="account-email-form"><label>Email<input name="email" type="email" required autocomplete="email"></label><label>Senha<input name="password" type="password" required minlength="8" maxlength="128" autocomplete="current-password"></label><button id="account-email-submit" type="submit" class="button primary">Entrar</button></form>
+      <form id="account-verify-form" hidden><p>Confirme o email pelo link recebido e entre novamente. Se recebeu um código, informe-o abaixo.</p><label>Código de confirmação<input name="token" inputmode="numeric" pattern="[0-9]{6,10}" required autocomplete="one-time-code"></label><button class="button primary" type="submit">Confirmar email</button></form>
+    </section>
+    <section id="account-profile" hidden>
+      <div class="profile-photo-row"><div id="profile-avatar" class="profile-avatar" aria-label="Foto do perfil"></div><div><span id="profile-email"></span><button id="profile-upload" class="button subtle" type="button"><span data-icon="camera"></span>Escolher foto</button></div></div>
+      <form id="profile-form"><label>Nome<input name="displayName" required maxlength="80" autocomplete="name"></label><label>Nome de usuário<input name="username" required minlength="3" maxlength="24" pattern="[a-z0-9_]{3,24}" autocomplete="username" placeholder="seu_usuario"><small>3 a 24 letras minúsculas, números ou _</small></label><label>Sua stack<input id="profile-stack-input" maxlength="30" placeholder="Ex.: React — Enter para adicionar" list="stack-suggestions"></label><datalist id="stack-suggestions"><option value="JavaScript"><option value="TypeScript"><option value="React"><option value="Node.js"><option value="Python"><option value="Go"><option value="Rust"><option value="PostgreSQL"><option value="Docker"><option value="Figma"></datalist><button id="profile-stack-add" type="button" class="button subtle">Adicionar tecnologia</button><div id="profile-stack-tags" class="profile-stack-tags" aria-label="Tecnologias da stack"></div><div class="account-actions"><button id="account-logout" type="button" class="button subtle">Sair da conta</button><button type="submit" class="button primary">Salvar perfil</button></div></form>
+    </section>
+  </dialog>
   <script src="app.js"></script>
 </body>
 </html>

@@ -17,7 +17,7 @@ Para distribuir uma versão portátil:
 npm run dist
 ```
 
-O executável fica em `release/MCode-Space-0.3.0.exe`. O pacote não tem assinatura digital.
+O executável fica em `release/MCode-Space-0.7.0.exe`. O pacote não tem assinatura digital.
 
 O visual da versão 0.2 herda a composição de pôster tecnológico da referência fornecida: tipografia Anton, recortes diagonais, linhas finas, símbolo oficial amostrado em ASCII e halftone discreto. A paleta continua sendo a da MCode. A textura fica na apresentação e na assinatura lateral; editor e terminais mantêm fundos planos.
 
@@ -81,8 +81,47 @@ O smoke usa uma pasta temporária e um perfil separado em `test-results/`, sem a
 
 O build limpa somente `dist/`, minifica a interface e incorpora suas bibliotecas. Fontes são emitidas uma única vez, licenças são preservadas e o portátil exclui source maps, símbolos de depuração e binários de outras plataformas. `node_modules/` fica local para desenvolvimento e não entra no Git.
 
-Não há sincronização em nuvem, gerenciamento de extensões, análise de linguagem, autocomplete ou depurador nesta versão. O editor é de texto simples com prévia Markdown.
+A sincronização com o Supabase atende às contas, perfis e financeiro. Não há sincronização de arquivos, gerenciamento de extensões, análise de linguagem, autocomplete ou depurador nesta versão. O editor é de texto simples com prévia Markdown.
 
 ## Repositório
 
 Este projeto mantém seu próprio Git. Não modificar, mover ou inicializar repositórios nas pastas pai ou nos outros projetos da MCode. Veja `AGENTS.md`, `PRODUCT.md` e `DESIGN.md` antes de alterar a implementação.
+
+## Editor expandido e financeiro
+
+Ao recolher o explorador, o botão inverso permanece na faixa esquerda para reabri-lo. **Expandir editor** ocupa toda a altura do espaço de trabalho, tanto na edição quanto na prévia Markdown. **Voltar aos terminais** restaura a divisão e mantém os shells em execução.
+
+O botão **Financeiro** alterna a lateral esquerda entre arquivos e um menu próprio MCode. Resumo mensal, movimentos, gastos fixos e clientes usam formulários nativos e dados compartilhados entre todas as contas autenticadas no Supabase. O mês selecionado filtra os movimentos. O painel consulta os dados a cada 5 segundos enquanto visível e permite atualização manual. Trocar de conta limpa os dados e rascunhos financeiros em memória; respostas antigas são descartadas. Pagamentos usam ID estável e versão para evitar sobrescrever alterações simultâneas.
+
+## Conta e perfil
+
+**Minha conta** oferece criação e login por email/senha, Google e GitHub. Os logins sociais abrem no navegador do sistema com PKCE e retornam por `http://127.0.0.1:47831/auth/callback/*`. Fechar a janela da conta cancela um login pendente. Email exige confirmação; o app aceita o código do email quando o template contém `{{ .Token }}`. A conta pode editar nome, usuário único e stack (até 20 tecnologias), além de enviar uma foto PNG/JPG/WebP de até 8 MB, convertida para PNG e reduzida antes do envio.
+
+A chave pública do projeto vem em `electron/supabase-config.json`; ela depende das políticas RLS e não é uma chave administrativa. Tokens ficam criptografados no perfil do Windows e nunca são expostos ao renderer. As fotos ficam em um bucket privado, por pasta de usuário. Perfis e fotos são individuais. Caixa, clientes, gastos fixos e tarefas são compartilhados entre todas as contas autenticadas. Pessoas sem login não acessam esses dados. As migrações em `supabase/migrations` criam as tabelas e políticas.
+
+Google e GitHub precisam estar habilitados no painel do Supabase com seus respectivos Client ID e Client Secret. O projeto Supabase foi reativado e a estrutura antiga `onefoot` foi removida após confirmação explícita. A integração Google Sheets foi retirada do aplicativo; o arquivo existente no Drive não foi alterado. Veja [Configuração do Supabase](docs/SUPABASE.md).
+
+## Personalizar terminais
+
+Em modo Abas, os controles ficam na aba. Em Colunas e Mosaico, ficam no cabeçalho de cada painel, sem a barra de abas. Clique no lápis para alterar nome, cor e ícone Lucide (terminal, código, Git, pasta, servidor, banco de dados ou projeto). A configuração é restaurada ao abrir o aplicativo. As setas do cabeçalho reordenam os painéis. O terminal selecionado tem contorno verde com pulso suave; o movimento é desativado quando o sistema prefere movimento reduzido. O nome fica no cabeçalho somente nos modos de painéis.
+
+## Tarefas da equipe
+
+**Tarefas** abre a mesma lateral usada pelo explorador e pelo financeiro. A lista é única para todas as contas autenticadas. Crie tarefas com título, notas, prioridade e prazo, edite pelo lápis, marque como concluídas ou reabra pelo checkbox. Os filtros mostram pendentes, concluídas ou todas; prazos vencidos são destacados. Excluir pede confirmação e remove a tarefa para toda a equipe.
+
+O painel ativo consulta o Supabase a cada cinco segundos e oferece sincronização manual. Não há gravação offline. Edições usam id e updated_at para impedir que uma conta sobrescreva silenciosamente a alteração feita por outra. As colunas de autor são registradas pelo usuário autenticado, mas não limitam a visibilidade. Registros compartilhados sobrevivem à remoção do autor. Contas novas passam a ter acesso ao caixa e às tarefas compartilhadas após autenticação.
+
+## Agentes e monitor de uso (0.7)
+
+No seletor de novo terminal, escolha **Codex**, **Hermes Agent**, **OpenCode** ou **Claude**. O aplicativo detecta CLIs instalados no PATH e nos diretórios usuais do Windows; opções ausentes ficam identificadas e desabilitadas. Instale e autentique o CLI separadamente e reinicie o Space após instalar. Cada agente abre diretamente na pasta ativa, com suas permissões e confirmações normais. Nenhum prompt é enviado automaticamente.
+
+Ao iniciar um agente, surge **Monitor de uso** ao lado de Explorador, Financeiro e Tarefas. O painel usa o mesmo visual MCode e mostra entrada, saída, cache, sessões abertas e encerradas e atalho para voltar ao terminal. Atualiza a cada 3 segundos quando visível. Os números são agrupados por agente e pasta, considerando sessões locais novas desde a primeira abertura desse agente no Space; sessões externas nessa mesma pasta também entram na contagem. O cache pode estar incluído nos tokens de entrada e não é somado a um total artificial.
+
+- **Codex:** contadores cumulativos e limites registrados nos eventos `token_count` do histórico JSONL; barras mostram percentuais e renovação de cada janela. Os limites são o último registro do CLI, não uma consulta em tempo real ao faturamento.
+- **Hermes:** contadores de sessões CLI em `state.db`, somente leitura.
+- **OpenCode:** contadores por sessão em `opencode.db`, somente leitura.
+- **Claude:** uso das mensagens do histórico JSONL, deduplicado por ID. O CLI não está instalado nesta máquina, portanto a abertura real não foi validada aqui.
+
+Hermes, OpenCode e Claude não fornecem limites de assinatura nesses históricos: o painel informa a indisponibilidade, sem inferir cotas a partir de tokens. Formatos de versões incompatíveis e históricos ausentes mostram um aviso. A leitura de logs é limitada para evitar travar a interface; quando o limite é excedido, a contagem aparece como parcial. Nenhuma credencial ou conversa é enviada à nuvem ou ao renderer; somente metadados locais de sessão e métricas numéricas são retornados. Não é necessário entrar na conta Supabase para usar agentes ou monitor.
+
+A organização salva restaura agentes como shells comuns, sem repetir comandos nem reiniciar agentes automaticamente.

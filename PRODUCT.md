@@ -24,7 +24,7 @@ O usuário solicitou explorador semelhante ao VS Code, múltiplos shells organiz
 
 Até 12 terminais. O editor trabalha com UTF-8 até 2 MB. Não pretende reproduzir todos os recursos de uma IDE. Comandos são executados com as permissões do usuário. A restauração recria sessões, sem repetir comandos anteriores.
 
-O explorador permite mover arquivos e pastas por arraste para diretórios ou para a raiz aberta, identificando o destino e recusando colisões, links e pastas com repositórios Git. Arquivos abertos acompanham o novo caminho e preservam rascunhos. O nome do terminal aparece apenas na aba; o painel mostra a pasta inicial. Renomeação aceita clique duplo, lápis, F2 e confirmação por Enter.
+O explorador permite mover arquivos e pastas por arraste para diretórios ou para a raiz aberta, identificando o destino e recusando colisões, links e pastas com repositórios Git. Arquivos abertos acompanham o novo caminho e preservam rascunhos. No modo Abas, o nome aparece na aba; em Colunas e Mosaico, aparece no cabeçalho junto aos controles de edição, reordenação e fechamento. Renomeação aceita clique duplo, lápis, F2 e confirmação por Enter.
 
 Até oito abas de pastas preservam seus arquivos, rascunhos e shells ao alternar projetos; o limite de 12 terminais é global. Abrir pasta adiciona uma aba; o menu de contexto de uma subpasta também oferece abrir em nova aba. Fechar uma aba pede confirmação se há processos ou alterações não salvas. Pastas abertas em outras abas não podem ser movidas até serem fechadas.
 
@@ -37,3 +37,11 @@ Arquivos .md e .markdown alternam entre edição e prévia pelos ícones de cód
 ## Brand Commitments
 
 Usar os logos oficiais da MCode sem deformação e a paleta escura com verde neon. Português na interface. Os outros repositórios da MCode devem permanecer intactos.
+
+O editor oferece expansão por arquivo e mantém os terminais em execução. O financeiro alterna com o explorador na lateral esquerda e usa Supabase/Postgres, compartilhado entre todas as contas autenticadas. Perfis e fotos permanecem individuais. Contas aceitam email/senha com confirmação e os provedores Google e GitHub via navegador do sistema e PKCE. Provedores externos dependem de configuração no projeto Supabase. O perfil contém nome, usuário único, stack e foto privada no Storage. O renderer recebe apenas dados sanitizados de conta/perfil, sem tokens. As funções de filesystem, shells e Git continuam locais e independentes da conta.
+
+Terminais permitem sete ícones Lucide e quatro cores, persistidos com o nome. A borda verde animada identifica o painel selecionado e respeita movimento reduzido. A assinatura lateral mantém símbolo e frase, sem brackets decorativos.
+
+Tarefas são compartilhadas no Supabase, com criação, edição, conclusão/reabertura, exclusão confirmada, notas, prazo e prioridade. O painel alterna com Explorador e Financeiro na mesma lateral, preservando arquivos e terminais. Atualização automática de cinco segundos no painel ativo.
+
+Agentes Codex, Hermes Agent, OpenCode e Claude são opções de novo terminal quando instalados. Abrir um agente disponibiliza Monitor de uso junto às demais laterais. Tokens são agrupados por agente e projeto desde a abertura, com cache separado e limites do Codex vindos do último evento do CLI. Provedores sem telemetria de limites são identificados. O monitor é local e independente do Supabase. Restaurar a organização não relança agentes automaticamente.
