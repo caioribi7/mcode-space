@@ -17,7 +17,7 @@ Para distribuir uma versão portátil:
 npm run dist
 ```
 
-O executável fica em `release/MCode-Space-0.7.0.exe`. O pacote não tem assinatura digital.
+O executável fica em `release/MCode-Space-0.9.0.exe`. O pacote não tem assinatura digital.
 
 O visual da versão 0.2 herda a composição de pôster tecnológico da referência fornecida: tipografia Anton, recortes diagonais, linhas finas, símbolo oficial amostrado em ASCII e halftone discreto. A paleta continua sendo a da MCode. A textura fica na apresentação e na assinatura lateral; editor e terminais mantêm fundos planos.
 
@@ -125,3 +125,19 @@ Ao iniciar um agente, surge **Monitor de uso** ao lado de Explorador, Financeiro
 Hermes, OpenCode e Claude não fornecem limites de assinatura nesses históricos: o painel informa a indisponibilidade, sem inferir cotas a partir de tokens. Formatos de versões incompatíveis e históricos ausentes mostram um aviso. A leitura de logs é limitada para evitar travar a interface; quando o limite é excedido, a contagem aparece como parcial. Nenhuma credencial ou conversa é enviada à nuvem ou ao renderer; somente metadados locais de sessão e métricas numéricas são retornados. Não é necessário entrar na conta Supabase para usar agentes ou monitor.
 
 A organização salva restaura agentes como shells comuns, sem repetir comandos nem reiniciar agentes automaticamente.
+
+## Contratos (0.8)
+
+Abra **Contratos**, preencha os dados das partes, escopo, valores e prazos, confira a prévia e salve o PDF pelo diálogo nativo. O modelo parte de Mateus Dias Alves / MCode, R$ 600 por site, R$ 60 mensais pelo serviço de domínio e três meses de assistência gratuita após entrega e aceite. Os valores podem ser ajustados. Há espaços de assinatura para as partes e duas testemunhas. A assinatura será feita em plataforma externa; o aplicativo gera o PDF sem assinar ou enviar dados. O formulário permanece somente na memória durante esta abertura do Space.
+
+O monitor foi simplificado para barras percentuais das duas janelas disponíveis. Codex informa 5 horas e semana; o aplicativo usa os períodos reais em vez de chamar a janela de 5h de diária.
+
+## Instalação e atualizações (0.9)
+
+Baixe `MCode-Space-Setup-0.9.0.exe` na release do GitHub. O instalador permite escolher o diretório e preserva os dados do aplicativo. O portátil continua disponível, mas exige instalação manual para migrar ao canal de atualização.
+
+Versões instaladas verificam releases estáveis do GitHub ao iniciar e a cada seis horas. **Atualizações** na barra inferior permite verificar manualmente, baixar com progresso e instalar/reiniciar após confirmação. O download não começa automaticamente; encerrar o app não instala uma atualização pendente. Salve seus arquivos antes de confirmar: os terminais serão encerrados.
+
+Versões anteriores à 0.9 não possuem esta função e precisam da instalação inicial manual. O repositório de distribuição é público; nenhum token GitHub é incluído no aplicativo. Electron Updater verifica o SHA-512 dos arquivos conforme `latest.yml`. Os instaladores ainda não têm assinatura digital de editor.
+
+Para publicar outra versão: aumente a versão em package.json e package-lock.json, execute os testes e `npm run dist`, faça commit/push e publique uma release estável no GitHub anexando `MCode-Space-Setup-VERSAO.exe`, seu `.blockmap`, `latest.yml` e o portátil opcional. Preserve os nomes gerados e publique todos os assets antes de tornar a release pública.

@@ -50,6 +50,8 @@ async function readConfig() {
   catch { return {}; }
 }
 
+const exportContract=require('./contracts.cjs').createContracts({BrowserWindow,dialog,getWindow:()=>win});
+handle('contracts:export',data=>exportContract(data));
 handle('workspace:initial', async () => {
   const saved = smoke ? {} : await readConfig();
   const workspaces = [];
@@ -191,6 +193,9 @@ app.whenReady().then(async () => {
     }
   });
   win.on('closed', stopAll);
+  const updates=require('./updates.cjs').createUpdates({app,updater:require('electron-updater').autoUpdater,portable:Boolean(process.env.PORTABLE_EXECUTABLE_DIR)||smoke,send:value=>{if(!win.isDestroyed())win.webContents.send('updates:state',value);},confirmInstall:async()=>{const answer=await dialog.showMessageBox(win,{type:'question',message:'Instalar a atualização e reiniciar?',detail:dirty?'Há alterações não salvas. Volte e salve seus arquivos antes de continuar. Os terminais serão encerrados.':'Os terminais em execução serão encerrados. O Space será reiniciado após instalar.',buttons:['Voltar','Instalar e reiniciar'],defaultId:0,cancelId:0});return answer.response===1;},install:()=>{quitting=true;stopAll();}});
+  handle('updates:state',()=>updates.state());handle('updates:check',()=>updates.check());handle('updates:download',()=>updates.download());handle('updates:install',()=>updates.apply());
+  if(app.isPackaged&&!smoke&&!process.env.PORTABLE_EXECUTABLE_DIR){const timer=setTimeout(()=>updates.check(),10000);timer.unref();const periodic=setInterval(()=>updates.check(),6*60*60*1000);periodic.unref();}
   await win.loadFile(entry);
   if (smoke) require('./smoke.cjs')({ app, win, pty, shells, files, sessions, agentMonitor, setRoot: value => { root = value; } });
 });

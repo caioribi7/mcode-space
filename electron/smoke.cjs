@@ -234,6 +234,17 @@ module.exports = async ({ app, win, setRoot, sessions, agentMonitor }) => {
     await js('document.querySelector("#account-close").click()');
     await js('Promise.all([...document.querySelectorAll(".terminal-tab")].map(t=>window.space.closeTerminal(t.dataset.id)))');
     await new Promise(resolve=>setTimeout(resolve,700));
+    await js('document.querySelector("#open-updates").click()');await wait('document.querySelector("#updates-dialog").open');assert.equal(await js('document.querySelector("#updates-check").disabled'),true);await js('document.querySelector("#updates-close").click()');
+    console.log('CONTRACT smoke: starting');
+    const {fields}=await import('./contracts-template.mjs');const contract=Object.fromEntries(fields.map(([key,,value,type])=>[key,value|| (type==='date'?'2026-10-31':key==='scope'?'Site com <script>alert(1)</script>':'Dado de exemplo')]));
+    await js('document.querySelector("#toggle-contracts").click()');
+    await js(`(()=>{const values=${JSON.stringify(contract)};for(const [key,value]of Object.entries(values))document.querySelector('#contract-form [name="'+key+'"]').value=value;document.querySelector('#contract-form').requestSubmit();})()`);
+    assert.equal(await js('document.querySelector("#contract-dialog").open'),true);
+    assert.equal(await js('document.querySelector("#contract-preview script")===null'),true);
+    assert.equal(await js('document.querySelectorAll("#contract-preview .signature").length'),4);
+    console.log('CONTRACT smoke: rendering PDF');
+    const pdf=await require('./contracts.cjs').renderContractPdf(require('electron').BrowserWindow,contract);assert.equal(pdf.subarray(0,4).toString(),'%PDF');await fs.writeFile(path.join(output,'contract-test.pdf'),pdf);
+    await fs.writeFile(path.join(output,'contract-preview.png'),(await win.webContents.capturePage()).toPNG());await js('document.querySelector("#contract-preview-close").click();document.querySelector("#show-explorer").click()');
     assert.equal(await js('document.querySelector("#toggle-monitor").hidden'),true);
     const rejectedAgent=await js(`window.space.createTerminal({shell:'agent:invalid',root:${JSON.stringify(root)}}).then(()=>false,()=>true)`);assert.equal(rejectedAgent,true);
     const codexAvailable=await js(`!document.querySelector('#shell-type option[value="agent:codex"]').disabled`);
@@ -257,7 +268,7 @@ module.exports = async ({ app, win, setRoot, sessions, agentMonitor }) => {
     await fs.writeFile(path.join(logs,'fixture.jsonl'),JSON.stringify({type:'session_meta',timestamp:date.toISOString(),payload:{cwd:root}})+'\n'+JSON.stringify({type:'event_msg',timestamp:date.toISOString(),payload:{type:'token_count',info:{total_token_usage:{input_tokens:12500,output_tokens:250,cached_input_tokens:8000}},rate_limits:{primary:{used_percent:35,window_minutes:300,resets_at:timestamp/1000+3000},secondary:{used_percent:62,window_minutes:10080,resets_at:timestamp/1000+9000}}}})+'\n');
     agentMonitor.start('usage-fixture','codex',99999,root,timestamp-1000);agentMonitor.end('usage-fixture',0);
     await js('window.dispatchEvent(new CustomEvent("mcode-agent-started"));document.querySelector("#close-monitor").click();document.querySelector("#toggle-monitor").click()');
-    await wait('document.querySelector("#monitor-list").textContent.includes("12.500")');
+    await wait('document.querySelectorAll("#monitor-list progress").length===2');
     assert.equal(await js('document.querySelectorAll("#monitor-list progress").length'),2);
     assert.equal(await js('document.querySelector("#monitor-list progress").value'),35);
     const {DatabaseSync}=require('node:sqlite');const telemetryDb=new DatabaseSync(path.join(telemetry,'electron-test.db'));telemetryDb.exec('CREATE TABLE test(value INTEGER)');telemetryDb.close();

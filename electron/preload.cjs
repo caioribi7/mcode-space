@@ -1,6 +1,11 @@
 const { contextBridge, ipcRenderer } = require('electron');
 const invoke = (channel, ...args) => ipcRenderer.invoke(channel, ...args);
 contextBridge.exposeInMainWorld('space', {
+  updateState: () => invoke('updates:state'),
+  updateCheck: () => invoke('updates:check'),
+  updateDownload: () => invoke('updates:download'),
+  updateInstall: () => invoke('updates:install'),
+  onUpdate: callback => {const listener=(_event,value)=>callback(value);ipcRenderer.on('updates:state',listener);return ()=>ipcRenderer.removeListener('updates:state',listener);},
   todosList: () => invoke('todos:list'),
   todosSave: value => invoke('todos:save',value),
   todosRemove: (id,stamp) => invoke('todos:remove',id,stamp),
@@ -18,6 +23,7 @@ contextBridge.exposeInMainWorld('space', {
   financeRead: () => invoke('finance:read'),
   financeAdd: (kind,value) => invoke('finance:add',kind,value),
   financeSettle: (index,expected) => invoke('finance:settle',index,expected),
+  contractExport: value => invoke('contracts:export',value),
   agentUsage: () => invoke('agents:usage'),
   initial: () => invoke('workspace:initial'),
   openFolder: () => invoke('workspace:open'),

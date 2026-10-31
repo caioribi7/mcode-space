@@ -22,3 +22,7 @@
 
 - Agentes: electron/agents.cjs permite somente Codex, Hermes, OpenCode e Claude, resolvidos em diretórios absolutos. Nunca executar scripts de workspace como atalhos, instalar CLIs ou acrescentar flags de aprovação automática. A restauração salva deve continuar iniciando apenas shells comuns.
 - Monitor de tokens local: electron/agent-usage.cjs lê somente campos numéricos de logs e bancos SQLite em modo readOnly/query_only. Não retornar mensagens, credenciais, configurações ou conteúdo bruto ao renderer nem ao Supabase. Contagem agrupada por agente/pasta desde a abertura; não duplicar o mesmo consumo em múltiplos terminais. Limites só aparecem quando fornecidos pela fonte, com data do último registro. Preservar limites de leitura e indicação de contagem parcial.
+
+- Contratos: formulário local em src/contracts.js, modelo/validação compartilhados em electron/contracts-template.mjs e PDF em electron/contracts.cjs. Validar e escapar todos os campos; exportar somente via diálogo nativo. O PDF reserva espaços para assinatura externa, sem assinar ou enviar dados.
+
+- Atualizações: electron/updates.cjs usa electron-updater e releases públicas fixas caioribi7/mcode-space. autoDownload e autoInstallOnAppQuit permanecem false; baixar e instalar exigem ações explícitas. Antes de quitAndInstall confirmar descarte/encerramento e parar PTYs. Não embarcar tokens GitHub. Publicar instalador NSIS, blockmap e latest.yml juntos. Portáteis antigos migram manualmente pelo instalador.

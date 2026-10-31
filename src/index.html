@@ -16,6 +16,7 @@
     <button id="toggle-finance" class="button subtle" aria-expanded="false"><span data-icon="finance"></span>Financeiro</button>
     <button id="toggle-todo" class="button subtle" aria-expanded="false"><span data-icon="todo"></span>Tarefas</button>
     <button id="toggle-monitor" class="button subtle" aria-expanded="false" hidden><span data-icon="activity"></span>Monitor de uso</button>
+    <button id="toggle-contracts" class="button subtle" aria-expanded="false"><span data-icon="file"></span>Contratos</button>
     <button id="open-account" class="button subtle"><span data-icon="user"></span><span id="account-button-label">Minha conta</span></button>
     <button id="open-folder" class="button primary">Abrir pasta <kbd>Ctrl O</kbd></button>
   </header>
@@ -59,9 +60,9 @@
     </aside>
     <aside id="monitor-sidebar" class="sidebar monitor-sidebar" hidden>
       <div class="section-head"><h1>Monitor de uso</h1><button id="close-monitor" class="icon-button" aria-label="Voltar ao explorador" title="Voltar ao explorador"><span data-icon="close"></span></button></div>
-      <div class="finance-scroll"><p class="finance-brand">Agentes.<br>Em atividade.</p><p class="monitor-note">Tokens e limites registrados pelos agentes. Atualização a cada 3 segundos.</p><details class="monitor-note"><summary>Como o consumo é contado</summary><p>Consumo por agente e pasta desde sua primeira abertura aqui; inclui sessões locais iniciadas fora do Space nessa pasta. Cache pode fazer parte da entrada. Limites refletem o último registro do CLI.</p></details><p id="monitor-status" role="status"></p><div id="monitor-list"></div></div>
-      <div class="sidebar-bottom"><span class="status-dot"></span><span>MCODE / LOCAL</span></div>
+      <div class="finance-scroll"><div id="monitor-list"></div></div>
     </aside>
+    <aside id="contracts-sidebar" class="sidebar contracts-sidebar" hidden><div class="section-head"><h1>Gerar contrato</h1><button id="close-contracts" class="icon-button" title="Voltar ao explorador" aria-label="Voltar ao explorador"><span data-icon="close"></span></button></div><div class="finance-scroll"><p class="finance-brand">Seu próximo<br>projeto.</p><p class="monitor-note">Preencha, confira e salve em PDF. Inclui três meses de assistência gratuita e espaços para assinatura em uma plataforma digital.</p><form id="contract-form"><div id="contract-fields"></div><button type="submit" class="button primary">Conferir contrato</button></form><p class="monitor-note">Revise as condições antes de assinar. A geração do PDF não realiza a assinatura.</p></div></aside>
     <div id="sidebar-resize" class="resize-handle" role="separator" tabindex="0" aria-label="Largura da lateral" aria-orientation="vertical"></div>
     <section class="workbench">
       <section id="editor" class="editor" aria-label="Editor de arquivos" hidden>
@@ -86,7 +87,9 @@
     </section>
 
   </main>
-  <footer class="statusbar"><div><span class="status-dot"></span><span id="connection">Pronto para começar</span><button id="git-status" class="git-status" title="Atualizar estado do Git"></button></div><div><span id="status-layout">Abas</span><span id="status-file">MCode Space</span></div></footer>
+  <footer class="statusbar"><div><span class="status-dot"></span><span id="connection">Pronto para começar</span><button id="git-status" class="git-status" title="Atualizar estado do Git"></button></div><div><button id="open-updates" class="git-status">Atualizações</button><span id="status-layout">Abas</span><span id="status-file">MCode Space</span></div></footer>
+  <dialog id="contract-dialog"><div class="contract-preview-actions"><h2>Conferir contrato</h2><button id="contract-preview-close" class="button subtle" type="button">Voltar</button><button id="contract-export" class="button primary" type="button">Salvar PDF</button></div><article id="contract-preview"></article></dialog>
+  <dialog id="updates-dialog"><h2>Atualizar o Space</h2><p id="updates-version"></p><p id="updates-status" role="status"></p><progress id="updates-progress" max="100" hidden aria-label="Download da atualização"></progress><div class="dialog-actions"><button id="updates-close" class="button subtle">Fechar</button><button id="updates-check" class="button subtle">Verificar</button><button id="updates-download" class="button primary" hidden>Baixar atualização</button><button id="updates-install" class="button primary" hidden>Instalar e reiniciar</button></div></dialog>
   <div id="toast" class="toast" role="status" hidden></div>
   <div id="folder-menu" class="folder-menu" role="menu" hidden><button id="folder-new-tab" role="menuitem"><span data-icon="folderPlus"></span>Abrir em nova aba</button><button id="folder-new-terminal" role="menuitem"><span data-icon="terminal"></span>Novo terminal aqui</button></div>
   <dialog id="rename-dialog"><form id="rename-form"><h2>Renomear terminal</h2><label for="terminal-name">Nome</label><input id="terminal-name" maxlength="60" required><label for="terminal-icon-choice">Ícone</label><select id="terminal-icon-choice"><option value="terminal">Terminal</option><option value="code">Código</option><option value="branch">Git</option><option value="folder">Pasta</option><option value="server">Servidor</option><option value="database">Banco de dados</option><option value="rocket">Projeto</option></select><label for="terminal-color">Cor de identificação</label><select id="terminal-color"><option value="green">Verde MCode</option><option value="blue">Azul</option><option value="amber">Âmbar</option><option value="pink">Rosa</option></select><div class="dialog-actions"><button id="cancel-rename" type="button" class="button subtle">Cancelar</button><button value="save" type="submit" class="button primary">Salvar</button></div></form></dialog>

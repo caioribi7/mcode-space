@@ -1,0 +1,8 @@
+const test=require('node:test');const assert=require('node:assert/strict');const {EventEmitter}=require('node:events');const {createUpdates}=require('../electron/updates.cjs');
+test('updates require explicit download and confirmation before terminating processes',async()=>{
+ const updater=new EventEmitter();let downloads=0,installed=0,stopped=0,allowed=false;updater.checkForUpdates=async()=>updater.emit('update-available',{version:'1.0.0'});updater.downloadUpdate=async()=>{downloads++;updater.emit('download-progress',{percent:50});updater.emit('update-downloaded',{version:'1.0.0'});};updater.quitAndInstall=()=>installed++;
+ const api=createUpdates({app:{isPackaged:true,getVersion:()=> '0.9.0'},updater,send:()=>{},confirmInstall:async()=>allowed,install:()=>stopped++});await assert.rejects(api.apply());await api.check();assert.equal(downloads,0);assert.equal(updater.autoInstallOnAppQuit,false);await api.download();assert.equal(api.state().status,'ready');assert.equal(await api.apply(),false);assert.equal(stopped,0);allowed=true;await api.apply();assert.equal(installed,1);assert.equal(stopped,1);
+});
+test('portable/development cannot invoke automatic download and network errors remain recoverable',async()=>{
+ const updater=new EventEmitter();updater.checkForUpdates=async()=>{throw new Error('offline');};const make=portable=>createUpdates({app:{isPackaged:true,getVersion:()=> '0.9.0'},updater,portable,send:()=>{}});const portable=make(true);assert.equal((await portable.check()).status,'manual');await assert.rejects(portable.download());const installed=make(false);assert.equal((await installed.check()).status,'error');
+});

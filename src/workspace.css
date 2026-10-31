@@ -130,3 +130,10 @@
 .monitor-note summary{cursor:pointer;color:var(--muted);padding:6px 0}
 @media(max-width:1200px){.topbar{gap:8px;padding-inline:14px}.topbar .brand img{width:100px;height:auto}.topbar .brand{gap:8px}.topbar .brand-divider{display:none}.topbar .space-name{font-size:25px}.topbar .workspace-name{display:none}.topbar .button{padding-inline:9px}}
 @media(max-width:1050px){#account-button-label,#open-folder kbd{display:none}}
+
+.contracts-sidebar{width:clamp(320px,var(--sidebar),440px)}
+#contract-fields textarea{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--line);padding:9px;min-height:90px;resize:vertical}
+#toggle-contracts.selected{color:var(--green);background:#a3ff1214}
+#contract-dialog{width:min(900px,95vw);max-height:90vh;padding:0}.contract-preview-actions{display:flex;align-items:center;gap:12px;padding:16px;position:sticky;top:0;background:var(--surface)}.contract-preview-actions h2{font-size:16px;flex:1;margin:0}
+#contract-preview{background:#fff;color:#171c18;padding:36px;font:14px/1.6 Arial,sans-serif}#contract-preview header{letter-spacing:2px;border-bottom:2px solid #46651e}#contract-preview h1{font-size:26px}#contract-preview h2{font-size:18px;margin:24px 0 12px}#contract-preview p{white-space:pre-wrap;overflow-wrap:anywhere}#contract-preview .signature{border:1px dashed #999;height:115px;padding:14px;margin:14px 0}#contract-preview .signature p{font-size:12px;color:#666}
+.topbar{flex-wrap:wrap;height:auto;min-height:74px;padding-block:10px}

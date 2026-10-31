@@ -8,6 +8,8 @@ import { icon } from './icons';
 import { renderMarkdown } from './markdown';
 import { setupAccount } from './account';
 import { setupTodos } from './todos';
+import { setupUpdates } from './updates';
+import { setupContracts } from './contracts';
 import { setupMonitor } from './monitor';
 import { setupSidebars } from './sidebars';
 import { setupFinance } from './finance';
@@ -327,6 +329,8 @@ setupAccount({api,icon,notify});
 setupFinance({api,icon,fitAll,notify});
 setupTodos({api,icon,notify});
 setupSidebars({icon,fitAll});
+setupContracts({api,notify});
+setupUpdates({api,notify});
 setupMonitor({api,icon,notify,focus:async id=>{const workspace=workspaces.find(w=>w.terminals.some(t=>t.id===id));if(!workspace)return notify('Este terminal já foi fechado.');await activateWorkspace(workspace);if(workspace.file?.fullEditor){workspace.file.fullEditor=false;renderEditor();}activateTerminal(workspace.terminals.find(t=>t.id===id));}});
 for(const [value,label] of Object.entries(MOSAICS)){const option=document.createElement('option');option.value=value;option.textContent=label;$('mosaic-layout').append(option);}
 $('mosaic-layout').onchange=()=>{state.mosaic=$('mosaic-layout').value;renderTerminals();persist();};
