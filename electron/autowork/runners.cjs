@@ -30,16 +30,24 @@ function createProcesses({ platform = process.platform } = {}) {
     if (platform === 'win32') execFile('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true }, () => {});
     else child.kill('SIGTERM');
   }
-  function run({ command, args = [], verbatim = false, cwd, env = process.env, input = '', timeoutMs = 30 * 60e3, maxBytes = 8e6 }) {
+  function run({ command, args = [], verbatim = false, cwd, env = process.env, input = '', timeoutMs = 30 * 60e3, maxBytes = 8e6, onLine = null }) {
     return new Promise((resolve, reject) => {
       let child;
+      // O OpenCode usa PWD (herdado de shells como o Git Bash) em vez da pasta do processo: forçar o worktree.
+      if (cwd) { env = { ...env, PWD: cwd }; delete env.INIT_CWD; delete env.OLDPWD; }
       try { child = spawn(command, args, { cwd, env, windowsHide: true, windowsVerbatimArguments: verbatim, stdio: ['pipe', 'pipe', 'pipe'] }); }
       catch (error) { reject(error); return; }
       live.add(child);
       let stdout = '', stderr = '', timedOut = false;
       const timer = setTimeout(() => { timedOut = true; kill(child); }, timeoutMs);
       child.stdout.setEncoding('utf8'); child.stderr.setEncoding('utf8');
-      child.stdout.on('data', d => { if (stdout.length < maxBytes) stdout += d; });
+      let pending = '';
+      child.stdout.on('data', d => {
+        if (stdout.length < maxBytes) stdout += d;
+        if (!onLine) return;
+        pending += d; const lines = pending.split(/\r?\n/); pending = lines.pop();
+        for (const line of lines) if (line) try { onLine(line); } catch {}
+      });
       child.stderr.on('data', d => { if (stderr.length < maxBytes) stderr += d; });
       child.on('error', error => { clearTimeout(timer); live.delete(child); reject(error); });
       child.on('close', code => { clearTimeout(timer); live.delete(child); resolve({ code, stdout, stderr, timedOut, aborted: child.aborted === true }); });
@@ -54,17 +62,34 @@ function createProcesses({ platform = process.platform } = {}) {
 const LIMITED = /usage limit|rate.?limit|429|overloaded|quota|credit balance|limit reached|too many requests|resets? at/i;
 function claudeUsage(u = {}) { return { input: (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0), cached: u.cache_read_input_tokens || 0, output: u.output_tokens || 0 }; }
 
-// Claude Code em modo não interativo. "dontAsk" nega tudo que não está na lista explícita de ferramentas.
-async function runClaude({ procs, resolved, cwd, prompt, tools, model, timeoutMs = 20 * 60e3, env = process.env }) {
-  const argv = ['-p', '--output-format', 'json', '--permission-mode', 'dontAsk', '--strict-mcp-config', '--no-session-persistence', '--setting-sources', 'user',
-    '--allowedTools', tools.join(','), '--disallowedTools', 'Read(**/.env*),Read(**/*.pem),Read(**/*.key),Edit(**/.git/**),Write(**/.git/**),Edit(**/.env*),Write(**/.env*),WebFetch,WebSearch,PowerShell,Agent,Task,NotebookEdit'];
+// Atividade legível a partir de uma chamada de ferramenta (Claude ou OpenCode): "editando src/a.js".
+const VERBS = { read: 'lendo', write: 'criando', edit: 'editando', multiedit: 'editando', patch: 'editando', glob: 'buscando', grep: 'buscando', list: 'listando', ls: 'listando', bash: 'executando', todowrite: 'organizando tarefas', webfetch: 'consultando' };
+function describeTool(name, input = {}, cwd = '') {
+  const verb = VERBS[String(name).toLowerCase()] || String(name).toLowerCase();
+  let target = input.file_path || input.filePath || input.path || input.pattern || input.command || '';
+  target = String(target);
+  if (cwd && target.toLowerCase().startsWith(cwd.toLowerCase())) target = target.slice(cwd.length).replace(/^[\\/]+/, '');
+  return (verb + ' ' + target.replace(/\\/g, '/')).trim().slice(0, 160);
+}
+function claudeEvents(line, cwd, onEvent) {
+  let event; try { event = JSON.parse(line); } catch { return; }
+  if (event.type !== 'assistant') return;
+  for (const block of event.message?.content || []) if (block.type === 'tool_use') onEvent(describeTool(block.name, block.input, cwd));
+}
+
+// Claude Code em modo não interativo. "dontAsk" nega tudo que não está na lista explícita de ferramentas;
+// sem ferramentas, é uma única resposta de texto (o mais barato).
+async function runClaude({ procs, resolved, cwd, prompt, tools, model, timeoutMs = 20 * 60e3, env = process.env, onEvent = null }) {
+  const argv = ['-p', '--output-format', 'stream-json', '--verbose', '--permission-mode', 'dontAsk', '--strict-mcp-config', '--no-session-persistence', '--setting-sources', 'user',
+    ...(tools.length ? ['--allowedTools', tools.join(',')] : []),
+    '--disallowedTools', 'Read(**/.env*),Read(**/*.pem),Read(**/*.key),Edit(**/.git/**),Write(**/.git/**),Edit(**/.env*),Write(**/.env*),WebFetch,WebSearch,PowerShell,Agent,Task,NotebookEdit'];
   // No Windows o CLI também oferece a ferramenta PowerShell, que liberava comandos de leitura mesmo em dontAsk: negada explicitamente.
   if (model) { if (!MODEL.test(model)) throw new Error('Modelo Claude inválido.'); argv.push('--model', model); }
   const cmd = commandFor(resolved, argv);
   // ANTHROPIC_API_KEY faria o CLI cobrar pela API; o auto-work usa o plano da conta logada.
-  const result = await procs.run({ ...cmd, cwd, input: prompt, timeoutMs, env: stripEnv(env, ['ANTHROPIC_API_KEY', 'NVIDIA_API_KEY']) });
+  const result = await procs.run({ ...cmd, cwd, input: prompt, timeoutMs, env: stripEnv(env, ['ANTHROPIC_API_KEY', 'NVIDIA_API_KEY']), onLine: onEvent ? line => claudeEvents(line, cwd, onEvent) : null });
   let data = null;
-  try { data = JSON.parse(result.stdout.trim().split(/\r?\n/).filter(Boolean).pop() || ''); } catch {}
+  for (const line of result.stdout.trim().split(/\r?\n/).reverse()) { try { const parsed = JSON.parse(line); if (parsed.type === 'result') { data = parsed; break; } } catch {} }
   const text = typeof data?.result === 'string' ? data.result : '';
   const failed = result.aborted || result.timedOut || result.code !== 0 || !data || data.is_error;
   const raw = `${text} ${result.stderr}`.slice(-2000);
@@ -121,11 +146,11 @@ function parseOpencodeJson(stdout) {
   }
   return events ? { text, usage: { input, output, cached } } : null;
 }
-async function runOpencode({ procs, resolved, cwd, model, agent, message, configPath, nvidiaKey, timeoutMs = 30 * 60e3, env = process.env }) {
+async function runOpencode({ procs, resolved, cwd, model, agent, message, configPath, nvidiaKey, timeoutMs = 30 * 60e3, env = process.env, onEvent = null }) {
   if (!MODEL.test(model)) throw new Error('Modelo OpenCode inválido.');
   const argv = ['run', '--model', model, ...(agent ? ['--agent', agent] : []), '--format', 'json', message];
   const childEnv = { ...stripEnv(env, ['ANTHROPIC_API_KEY', 'NVIDIA_API_KEY']), OPENCODE_CONFIG: configPath, ...(nvidiaKey ? { NVIDIA_API_KEY: nvidiaKey } : {}) };
-  const result = await procs.run({ ...commandFor(resolved, argv), cwd, env: childEnv, timeoutMs });
+  const result = await procs.run({ ...commandFor(resolved, argv), cwd, env: childEnv, timeoutMs, onLine: onEvent ? line => opencodeEvents(line, cwd, onEvent) : null });
   const parsed = parseOpencodeJson(result.stdout);
   const text = parsed ? parsed.text : result.stdout.trim().slice(-20000);
   // Sem telemetria: estimativa por caracteres (aprox. 4 por token), marcada como parcial.
@@ -133,6 +158,11 @@ async function runOpencode({ procs, resolved, cwd, model, agent, message, config
   const failed = result.aborted || result.timedOut || result.code !== 0;
   const raw = (result.stderr + ' ' + text).slice(-2000);
   return { ok: !failed, text, usage, limited: failed && LIMITED.test(raw), aborted: result.aborted, error: failed ? (result.timedOut ? 'Tempo esgotado.' : raw.trim().slice(-300) || `Saída ${result.code}`) : null };
+}
+function opencodeEvents(line, cwd, onEvent) {
+  let event; try { event = JSON.parse(line); } catch { return; }
+  const part = event.part || {};
+  if (part.type === 'tool' && part.tool) onEvent(describeTool(part.tool, part.state?.input || {}, cwd) + (part.state?.status === 'error' ? ' (recusado)' : ''));
 }
 async function opencodeFreeModels({ procs, resolved, env = process.env }) {
   const result = await procs.run({ ...commandFor(resolved, ['models', 'opencode']), env, timeoutMs: 60e3 });
@@ -154,4 +184,4 @@ function extractJson(text) {
   return null;
 }
 
-module.exports = { createProcesses, commandFor, runClaude, nvidiaModels, pickNvidiaModel, nvidiaChat, opencodeConfig, writeOpencodeConfig, parseOpencodeJson, runOpencode, opencodeFreeModels, extractJson, stripEnv, SAFE_ARG, MODEL, NVIDIA_BASE };
+module.exports = { describeTool, claudeEvents, opencodeEvents, createProcesses, commandFor, runClaude, nvidiaModels, pickNvidiaModel, nvidiaChat, opencodeConfig, writeOpencodeConfig, parseOpencodeJson, runOpencode, opencodeFreeModels, extractJson, stripEnv, SAFE_ARG, MODEL, NVIDIA_BASE };

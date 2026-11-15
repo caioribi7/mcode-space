@@ -172,14 +172,20 @@ A lateral **Auto-work** mantém agentes trabalhando no projeto até você mandar
 4. `npm test` roda no worktree; o orquestrador revisa o diff. Aprovado e com testes passando, vira **commit na branch `autowork`**. Reprovado, há uma segunda tentativa com o feedback (com o próximo executor) e depois o ciclo é descartado.
 5. O Telegram recebe um resumo curto (`✅ #3 a1b2c3d · título · +84 −12 · testes ok`). Ao parar, chega o resumo final com todos os commits e tokens por provedor.
 
-Para economizar o plano do Claude:
+**Tela ao vivo:** ao iniciar, a área dos terminais vira um mosaico do auto-work (os terminais continuam rodando; **Terminais** volta para eles e **Ver auto-work** reabre).
+- O tile da esquerda mostra a tarefa, as etapas (Mapa → Plano → Escolha → Contexto → Implementar → Testes → Revisão → Commit), quem está trabalhando agora, a atividade recente ("OpenCode · editando src/a.js"), os commits e a parcela de tokens de cada provedor.
+- Os outros tiles mostram, em tempo real, os arquivos que o agente está editando no worktree, com o diff colorido. Os mais recentes aparecem primeiro, até 4.
 
-| Papel | Ordem dos provedores |
-| --- | --- |
-| Orquestrar (planejar, detalhar, revisar) | Claude CLI pelo seu plano → API NVIDIA → OpenCode grátis (agente `plan`, só leitura) |
-| Implementar | OpenCode com modelo NVIDIA → OpenCode com modelo grátis → Claude |
+**Economia do plano do Claude:** o Claude só recebe texto compacto, preparado por agentes baratos, e roda sem ferramentas.
 
-O Claude usa só leitura para planejar e revisar. Se atingir o limite do plano, é pausado por 30 minutos e a NVIDIA assume. O modelo NVIDIA é escolhido automaticamente entre os de código disponíveis na sua chave (MiniMax M3, Qwen3 Coder, Nemotron 3 Ultra, Kimi…), ou pode ser fixado na configuração. O modelo grátis do OpenCode vem de `opencode models opencode`.
+| Etapa | Quem faz | Custo do Claude |
+| --- | --- | --- |
+| Mapa do projeto (explorar o código) | OpenCode → NVIDIA → Claude | nenhum; reaproveitado por 4 commits |
+| Plano de 5 tarefas | Claude, sem ferramentas → NVIDIA → OpenCode | 1 chamada a cada ~3 ciclos (backlog) |
+| Contexto da tarefa (ler os arquivos certos, escrever o passo a passo) | OpenCode → NVIDIA → Claude | nenhum |
+| Implementar | OpenCode + NVIDIA → OpenCode grátis → Claude | só como último recurso |
+| Testes | local | nenhum; falha volta direto ao implementador, sem revisão |
+| Revisão do diff | Claude, sem ferramentas → NVIDIA → OpenCode | 1 chamada por ciclo com testes passando | Se atingir o limite do plano, é pausado por 30 minutos e a NVIDIA assume. O modelo NVIDIA é escolhido automaticamente entre os de código disponíveis na sua chave (MiniMax M3, Qwen3 Coder, Nemotron 3 Ultra, Kimi…), ou pode ser fixado na configuração. O modelo grátis do OpenCode vem de `opencode models opencode`.
 
 **Configurar:** crie um bot no @BotFather, cole o token em Auto-work → Configuração, clique em **Gerar código de pareamento** e envie `/parear 123456` ao bot em conversa privada. Opcional: chave da NVIDIA (build.nvidia.com, começa com `nvapi-`) e instalação do OpenCode (`npm i -g opencode-ai`). Defina limites de ciclos e horas por sessão.
 

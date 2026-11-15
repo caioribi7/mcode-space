@@ -121,13 +121,18 @@ test('sandbox works in an autowork worktree and never touches the opened branch'
     await sandbox.writeTask('tarefa');
     await fs.writeFile(path.join(box.workdir, 'b.txt'), 'b\n');
     assert.deepEqual(await sandbox.changes(), ['b.txt']);
+    const live = await sandbox.liveFiles();
+    assert.equal(live[0].path, 'b.txt'); assert.equal(live[0].status, 'novo'); assert.equal(live[0].added, 1); assert.ok(live[0].diff.startsWith("+b"));
+    await fs.writeFile(path.join(box.workdir, '.env'), 'x');
+    assert.equal((await sandbox.liveFiles()).some(f => f.path === '.env'), false, 'arquivos protegidos não aparecem');
+    await fs.rm(path.join(box.workdir, '.env'));
     const diff = await sandbox.diff(); assert.equal(diff.files, 1); assert.equal(diff.added, 1);
     const hash = await sandbox.commit('feat: b');
     assert.match(hash, /^[0-9a-f]{7,}$/);
     assert.equal(git(['rev-parse', '--abbrev-ref', 'HEAD']).trim(), 'main');
     assert.equal(git(['log', '--oneline', 'main']).trim().split('\n').length, 1);
     assert.equal(git(['show', 'autowork:b.txt']), 'b\n');
-    assert.equal(git(['ls-tree', '-r', '--name-only', 'autowork']).includes('.autowork-task.md'), false);
+    assert.equal(git(['ls-tree', '-r', '--name-only', 'autowork']).includes('AUTOWORK_TASK.md'), false);
     // Commit feito por um agente volta ao índice para passar pela revisão.
     const head = await sandbox.head();
     await fs.writeFile(path.join(box.workdir, 'c.txt'), 'c\n');
@@ -178,4 +183,36 @@ test('only the paired private chat controls the service', async () => {
     await service._handle({ chatId: 42, private: true, cmd: 'iniciar', arg: '' });
     assert.match(sent.at(-1).body.text, /Inicie uma vez pelo app/);
   } finally { await service.shutdown(); await fs.rm(dir, { recursive: true, force: true }); }
+});
+
+test('backlog avoids replanning, failing tests skip the Claude review and live state is tracked', async () => {
+  const calls = [], log = [];
+  const think = async (kind, prompt, { observer }) => {
+    calls.push(kind); observer?.actor('claude', kind);
+    return { ok: true, by: kind === 'digest' || kind === 'spec' ? 'opencode' : 'claude', text: kind === 'plan' ? plan : kind === 'review' ? '{"approve":true,"commit":"feat: x"}' : 'mapa/passos', usage: { input: 10, output: 1 } };
+  };
+  let n = 0;
+  const sandbox = fakeSandbox(log);
+  const make = () => { const s = sandbox(); s.test = async () => ({ ran: true, ok: ++n > 2, output: 'falhou' }); s.liveFiles = async () => [{ path: 'src/x.js', status: 'editado', added: 1, removed: 0, mtime: 1, diff: '+x' }]; return s; };
+  const o = createOrchestrator({ think, implement: async (attempt, { observer }) => { observer.note('opencode', 'editando src/x.js'); return { ok: true, by: 'opencode', usage: {} }; }, createSandbox: make, send: () => {}, pollMs: 5 });
+  o.start({ root: 'R', mode: 'auto', limits: { maxCycles: 2 } });
+  await o.whenIdle();
+  const snap = o.snapshot();
+  assert.equal(calls.filter(k => k === 'plan').length, 1, 'um plano serve a vários ciclos');
+  assert.equal(calls.filter(k => k === 'digest').length, 1, 'mapa reaproveitado');
+  assert.equal(snap.failures.length, 1, 'primeiro ciclo falha nos testes duas vezes');
+  assert.equal(calls.filter(k => k === 'review').length, 1, 'revisão só quando os testes passam');
+  assert.equal(snap.commits.length, 1);
+  assert.ok(snap.activity.some(a => a.text === 'editando src/x.js'));
+  assert.equal(snap.files[0].path, 'src/x.js');
+  assert.ok(log.some(e => e[0] === 'task' && e[1].includes('Os testes falharam')));
+});
+
+test('tool events are summarised relative to the worktree', () => {
+  assert.equal(runners.describeTool('Edit', { file_path: 'C:\\w\\src\\a.js' }, 'C:\\w'), 'editando src/a.js');
+  assert.equal(runners.describeTool('glob', { pattern: '**/*.ts' }), 'buscando **/*.ts');
+  const seen = [];
+  runners.claudeEvents(JSON.stringify({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Read', input: { file_path: '/w/README.md' } }] } }), '/w', t => seen.push(t));
+  runners.opencodeEvents(JSON.stringify({ type: 'tool_use', part: { type: 'tool', tool: 'bash', state: { status: 'error', input: { command: 'whoami' } } } }), '/w', t => seen.push(t));
+  assert.deepEqual(seen, ['lendo README.md', 'executando whoami (recusado)']);
 });

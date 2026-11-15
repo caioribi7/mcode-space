@@ -11,7 +11,7 @@ const { createOrchestrator } = require('./orchestrator.cjs');
 const NVIDIA_KEY = /^nvapi-[A-Za-z0-9_-]{20,200}$/;
 const CLAUDE_MODEL = /^[a-z0-9.\-\[\]]{0,60}$/i;
 const LIMIT_PAUSE = 30 * 60e3;
-const OPENCODE_MESSAGE = 'Read the file .autowork-task.md in this folder and do exactly what it asks. Reply with a one-line summary.';
+const OPENCODE_MESSAGE = 'Read the file AUTOWORK_TASK.md in this folder and do exactly what it asks. Reply with a one-line summary.';
 const HELP = `Comandos do auto-work:
 /iniciar — começa; você escolhe entre 5 tarefas
 /iniciar sozinho — começa e decide sozinho
@@ -75,26 +75,34 @@ function createAutowork({ userData, safeStorage, resolveAgent, allowedRoots, sen
   const telegram = createTelegram({ fetchImpl, getToken: () => prefsCache.telegramToken, onCommand: command => handle(command).catch(() => {}) });
   async function reply(text, buttons) { if (prefsCache.chatId && telegram.running) await telegram.send(prefsCache.chatId, text, buttons); }
 
-  // Pensar (planejar, detalhar, revisar): Claude pelo plano → API NVIDIA → OpenCode grátis (agente plan, somente leitura).
-  async function think(kind, prompt, { cwd }) {
+  // Etapas de pensar. A ordem de provedores depende da etapa, para gastar o Claude só onde importa:
+  // - plan/review: Claude (sem ferramentas, texto compacto) → NVIDIA → OpenCode
+  // - digest/spec (explorar o código e organizar contexto): OpenCode (com leitura) → NVIDIA → Claude (com leitura)
+  const THINK_ORDER = { plan: ['claude', 'nvidia', 'opencode'], review: ['claude', 'nvidia', 'opencode'], digest: ['opencode', 'nvidia', 'claude'], spec: ['opencode', 'nvidia', 'claude'] };
+  const LABELS = { plan: 'planejando o backlog', review: 'revisando o diff', digest: 'mapeando o projeto', spec: 'organizando o contexto da tarefa' };
+  const cheapModel = () => prefsCache.nvidiaKey && providers.nvidiaModel ? 'nvidia/' + providers.nvidiaModel : providers.freeModel;
+  async function think(kind, prompt, { cwd, observer = null }) {
     const attempts = []; let notice = null;
-    if (agent('claude') && Date.now() >= claudeLimitedUntil) {
-      const result = await runners.runClaude({ procs, resolved: agent('claude'), cwd, prompt, tools: ['Read', 'Grep', 'Glob'], model: prefsCache.claudeModel || '' }).catch(e => ({ ok: false, error: e.message, usage: {} }));
-      attempts.push({ ...result, by: 'claude' });
-      if (result.ok || result.aborted) return { ...result, by: 'claude', attempts };
-      if (result.limited) { claudeLimitedUntil = Date.now() + LIMIT_PAUSE; notice = 'Claude atingiu o limite do plano; usando NVIDIA/OpenCode por 30 min.'; reply('⚠️ ' + notice).catch(() => {}); }
-    }
-    if (prefsCache.nvidiaKey && providers.nvidiaModel) {
-      const result = await runners.nvidiaChat({ key: prefsCache.nvidiaKey, model: providers.nvidiaModel, prompt, system: 'Você é um engenheiro de software sênior. Siga o formato pedido à risca.', fetchImpl }).catch(e => ({ ok: false, error: e.message, usage: {} }));
-      attempts.push({ ...result, by: 'nvidia' });
-      if (result.ok) return { ...result, by: 'nvidia', attempts, notice };
-    }
-    if (agent('opencode') && providers.freeModel) {
-      await fs.writeFile(path.join(cwd, TASK_FILE), prompt + '\n\nNão altere nenhum arquivo.');
-      const result = await runners.runOpencode({ procs, resolved: agent('opencode'), cwd, model: providers.freeModel, agent: 'plan', message: OPENCODE_MESSAGE, configPath }).catch(e => ({ ok: false, error: e.message, usage: {} }));
-      await fs.rm(path.join(cwd, TASK_FILE), { force: true });
-      attempts.push({ ...result, by: 'opencode' });
-      if (result.ok) return { ...result, by: 'opencode', attempts, notice };
+    const explore = kind === 'digest' || kind === 'spec';
+    const note = by => text => observer?.note(by, text);
+    for (const by of THINK_ORDER[kind] || THINK_ORDER.plan) {
+      let result = null;
+      if (by === 'claude' && agent('claude') && Date.now() >= claudeLimitedUntil) {
+        observer?.actor('claude', LABELS[kind]);
+        result = await runners.runClaude({ procs, resolved: agent('claude'), cwd, prompt, tools: explore ? ['Read', 'Grep', 'Glob'] : [], model: prefsCache.claudeModel || '', onEvent: note('claude') }).catch(e => ({ ok: false, error: e.message, usage: {} }));
+        if (result.limited) { claudeLimitedUntil = Date.now() + LIMIT_PAUSE; notice = 'Claude atingiu o limite do plano; usando NVIDIA/OpenCode por 30 min.'; reply('⚠️ ' + notice).catch(() => {}); }
+      } else if (by === 'nvidia' && prefsCache.nvidiaKey && providers.nvidiaModel) {
+        observer?.actor('nvidia', LABELS[kind]);
+        result = await runners.nvidiaChat({ key: prefsCache.nvidiaKey, model: providers.nvidiaModel, prompt, system: 'Você é um engenheiro de software sênior. Siga o formato pedido à risca.', fetchImpl }).catch(e => ({ ok: false, error: e.message, usage: {} }));
+      } else if (by === 'opencode' && agent('opencode') && cheapModel()) {
+        observer?.actor('opencode', LABELS[kind]);
+        await fs.writeFile(path.join(cwd, TASK_FILE), prompt + '\n\nNão altere nenhum arquivo.');
+        result = await runners.runOpencode({ procs, resolved: agent('opencode'), cwd, model: cheapModel(), agent: 'plan', message: OPENCODE_MESSAGE, configPath, nvidiaKey: prefsCache.nvidiaKey, onEvent: note('opencode') }).catch(e => ({ ok: false, error: e.message, usage: {} }));
+        await fs.rm(path.join(cwd, TASK_FILE), { force: true });
+      }
+      if (!result) continue;
+      attempts.push({ ...result, by });
+      if (result.ok || result.aborted) return { ...result, by, attempts, notice };
     }
     const last = attempts.at(-1);
     return { ok: false, error: last?.error || 'Nenhum provedor disponível para orquestrar.', attempts, notice, by: last?.by };
@@ -103,17 +111,18 @@ function createAutowork({ userData, safeStorage, resolveAgent, allowedRoots, sen
   // Implementar: OpenCode com modelo NVIDIA → OpenCode grátis → Claude (reserva). A 2ª tentativa começa no próximo executor.
   function workers() {
     const list = [];
-    if (agent('opencode') && prefsCache.nvidiaKey && providers.nvidiaModel) list.push({ by: 'opencode', label: 'OpenCode + NVIDIA', run: cwd => runners.runOpencode({ procs, resolved: agent('opencode'), cwd, model: 'nvidia/' + providers.nvidiaModel, message: OPENCODE_MESSAGE, configPath, nvidiaKey: prefsCache.nvidiaKey }) });
-    if (agent('opencode') && providers.freeModel) list.push({ by: 'opencode', label: 'OpenCode grátis', run: cwd => runners.runOpencode({ procs, resolved: agent('opencode'), cwd, model: providers.freeModel, message: OPENCODE_MESSAGE, configPath }) });
-    if (agent('claude') && Date.now() >= claudeLimitedUntil) list.push({ by: 'claude', label: 'Claude', run: async cwd => runners.runClaude({ procs, resolved: agent('claude'), cwd, prompt: await fs.readFile(path.join(cwd, TASK_FILE), 'utf8'), model: prefsCache.claudeModel || '', tools: ['Read', 'Edit', 'Write', 'Grep', 'Glob', 'Bash(npm test)', 'Bash(npm run test*)', 'Bash(git status*)', 'Bash(git diff*)'] }) });
+    if (agent('opencode') && prefsCache.nvidiaKey && providers.nvidiaModel) list.push({ by: 'opencode', label: 'OpenCode + NVIDIA', run: (cwd, onEvent) => runners.runOpencode({ procs, resolved: agent('opencode'), cwd, model: 'nvidia/' + providers.nvidiaModel, message: OPENCODE_MESSAGE, configPath, nvidiaKey: prefsCache.nvidiaKey, onEvent }) });
+    if (agent('opencode') && providers.freeModel) list.push({ by: 'opencode', label: 'OpenCode grátis', run: (cwd, onEvent) => runners.runOpencode({ procs, resolved: agent('opencode'), cwd, model: providers.freeModel, message: OPENCODE_MESSAGE, configPath, onEvent }) });
+    if (agent('claude') && Date.now() >= claudeLimitedUntil) list.push({ by: 'claude', label: 'Claude', run: async (cwd, onEvent) => runners.runClaude({ procs, resolved: agent('claude'), cwd, prompt: await fs.readFile(path.join(cwd, TASK_FILE), 'utf8'), model: prefsCache.claudeModel || '', onEvent, tools: ['Read', 'Edit', 'Write', 'Grep', 'Glob', 'Bash(npm test)', 'Bash(npm run test*)', 'Bash(git status*)', 'Bash(git diff*)'] }) });
     return list;
   }
-  async function implement(attempt, { cwd }) {
+  async function implement(attempt, { cwd, observer = null }) {
     const list = workers(), attempts = [];
     if (!list.length) return { ok: false, error: 'Nenhum executor disponível.', attempts };
     const start = Math.min(attempt - 1, list.length - 1);
     for (const worker of [...list.slice(start), ...list.slice(0, start)]) {
-      const result = await worker.run(cwd).catch(e => ({ ok: false, error: e.message, usage: {} }));
+      observer?.actor(worker.by, worker.label + ' implementando');
+      const result = await worker.run(cwd, text => observer?.note(worker.by, text)).catch(e => ({ ok: false, error: e.message, usage: {} }));
       attempts.push({ ...result, by: worker.by });
       if (result.ok || result.aborted) return { ...result, by: worker.by, attempts };
       if (worker.by === 'claude' && result.limited) claudeLimitedUntil = Date.now() + LIMIT_PAUSE;

@@ -5,7 +5,7 @@ const path = require('node:path');
 const { createHash } = require('node:crypto');
 
 const BRANCH = 'autowork';
-const TASK_FILE = '.autowork-task.md';
+const TASK_FILE = 'AUTOWORK_TASK.md';
 const FORBIDDEN = /(^|\/)\.git(\/|$)|(^|\/)\.env($|\.)|\.(pem|key|pfx|p12|keystore)$|(^|\/)id_(rsa|ed25519|ecdsa)|(^|\/)(credentials|secrets?)\.(json|ya?ml|txt)$/i;
 
 function forbiddenPaths(paths) { return paths.filter(p => FORBIDDEN.test(p.replace(/\\/g, '/'))); }
@@ -74,6 +74,27 @@ function createSandbox({ procs, root, baseDir, git = 'git', npm = null, env = pr
     for (let i = 0; i < items.length; i++) { const entry = items[i]; paths.push(entry.slice(3)); if (/^[RC]/.test(entry)) i++; }
     return paths.filter(p => path.posix.basename(p) !== TASK_FILE);
   }
+  // Arquivos em edição agora, os mais recentes primeiro, com o diff atual (somente leitura do worktree).
+  async function liveFiles(limit = 4, maxChars = 6000) {
+    const out = await g(['status', '--porcelain=v1', '-uall', '-z']);
+    const items = out.split('\0').filter(Boolean), entries = [];
+    for (let i = 0; i < items.length; i++) { const e = items[i]; entries.push({ code: e.slice(0, 2), path: e.slice(3) }); if (/^[RC]/.test(e)) i++; }
+    const files = entries.filter(e => path.posix.basename(e.path) !== TASK_FILE && !FORBIDDEN.test(e.path));
+    if (!files.length) return [];
+    await Promise.all(files.map(async f => { f.mtime = (await fs.stat(path.join(dir, f.path)).catch(() => null))?.mtimeMs || 0; }));
+    files.sort((a, b) => b.mtime - a.mtime);
+    return Promise.all(files.slice(0, limit).map(async f => {
+      let diff;
+      if (f.code === '??') {
+        const content = await fs.readFile(path.join(dir, f.path), 'utf8').catch(() => '');
+        diff = /\0/.test(content.slice(0, 2000)) ? '(arquivo binário)' : content.replace(/\r?\n$/, '').split(/\r?\n/).map(l => '+' + l).join('\n');
+      } else diff = await g(['diff', '--no-color', '-U2', 'HEAD', '--', f.path]).catch(() => '');
+      const lines = diff.split('\n');
+      const added = lines.filter(l => l.startsWith('+') && !l.startsWith('+++')).length, removed = lines.filter(l => l.startsWith('-') && !l.startsWith('---')).length;
+      const body = lines.filter(l => !/^(diff --git|index |--- |\+\+\+ )/.test(l)).join('\n');
+      return { path: f.path, status: f.code === '??' ? 'novo' : f.code.includes('D') ? 'removido' : 'editado', added, removed, mtime: f.mtime, diff: body.length > maxChars ? '…\n' + body.slice(-maxChars) : body };
+    }));
+  }
   async function writeTask(text) { await fs.writeFile(path.join(workdir, TASK_FILE), text); }
   async function clearTask() { await fs.rm(path.join(workdir, TASK_FILE), { force: true }); }
   async function test() {
@@ -101,7 +122,7 @@ function createSandbox({ procs, root, baseDir, git = 'git', npm = null, env = pr
     const list = files.split(/\r?\n/).filter(Boolean);
     return { files: list.slice(0, 400).join('\n') + (list.length > 400 ? `\n… +${list.length - 400} arquivos` : ''), log: log.trim(), agents: await read('AGENTS.md') || await read('CLAUDE.md'), product: await read('PRODUCT.md') || await read('README.md') };
   }
-  return { prepare, reset, head, ensureHead, changes, writeTask, clearTask, test, diff, commit, context, get workdir() { return workdir; }, get dir() { return dir; } };
+  return { prepare, reset, head, ensureHead, changes, liveFiles, writeTask, clearTask, test, diff, commit, context, get workdir() { return workdir; }, get dir() { return dir; } };
 }
 
 module.exports = { createSandbox, forbiddenPaths, BRANCH, TASK_FILE };

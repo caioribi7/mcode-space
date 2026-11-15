@@ -172,3 +172,50 @@
 /* Muitas laterais: abaixo de 2000px os botões da barra ficam só com ícone (título e aria-label mantidos). */
 @media(max-width:2400px){.topbar .workspace-name{display:none}}
 @media(max-width:2000px){.topbar .nav-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.topbar .button.subtle{padding-inline:10px}}
+
+/* Palco do auto-work: cobre a área dos terminais (que continuam rodando por baixo). */
+.autowork-stage{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;background:var(--bg)}
+.aws-head{height:56px;display:flex;align-items:center;gap:10px;padding:0 20px;border-bottom:1px solid var(--line);flex-shrink:0}
+.aws-head h2{font-size:14px;margin:0}.aws-head svg{color:var(--green)}
+.aws-head-actions{margin-left:auto;display:flex;gap:8px}.aws-head-actions .button{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:7px 10px}
+.aws-grid{flex:1;min-height:0;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(300px,.85fr) minmax(0,1.7fr);gap:1px;background:var(--line)}
+.aws-tile{background:var(--surface);min-width:0;min-height:0;overflow:auto;padding:16px 18px}
+.aws-progress{display:flex;flex-direction:column;gap:10px}
+.aws-kicker{font:10px Geist,monospace;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin:0}
+.aws-progress h3{font:24px/1.15 Anton,sans-serif;margin:0;overflow-wrap:anywhere}
+.aws-why,.aws-meta{font-size:11px;line-height:1.6;color:var(--muted);margin:0}
+.aws-pipeline{list-style:none;display:flex;flex-wrap:wrap;gap:4px;padding:0;margin:4px 0}
+.aws-pipeline li{font:10px Geist,monospace;padding:4px 7px;border:1px solid var(--line);color:var(--muted)}
+.aws-pipeline li.done{color:var(--text);border-color:#a3ff1240}.aws-pipeline li.active{color:#0b100d;background:var(--green);border-color:var(--green)}
+.aws-actor{display:flex;align-items:center;gap:8px;font-size:12px;padding:8px 10px;border:1px solid var(--line);background:var(--bg)}
+.aws-actor span:last-child{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aws-pulse{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;animation:aws-pulse 1.4s ease-in-out infinite}
+@keyframes aws-pulse{50%{opacity:.25}}
+@media(prefers-reduced-motion:reduce){.aws-pulse{animation:none}}
+.aws-choices{display:flex;flex-direction:column;gap:6px}
+.aws-spec summary{cursor:pointer;font-size:11px;color:var(--muted)}.aws-spec p{font-size:11px;line-height:1.6;white-space:pre-wrap;color:var(--muted)}
+.aws-progress h4{font-size:11px;margin:6px 0 0;color:var(--text)}
+.aws-feed,.aws-commits{list-style:none;padding:0;margin:0;font-size:11px;line-height:1.5}
+.aws-feed li{display:grid;grid-template-columns:58px 64px 1fr;gap:6px;padding:4px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}
+.aws-feed time{color:var(--muted);font-variant-numeric:tabular-nums}
+.aws-by{font:10px Geist,monospace;color:var(--muted)}.aws-by.claude{color:#f0a37a}.aws-by.nvidia{color:#9fd85b}.aws-by.opencode{color:#7ab8f0}
+.aws-foot{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px;margin-top:auto}
+.aws-commits li{font:10px Geist,monospace;color:var(--muted);padding:2px 0;overflow-wrap:anywhere}
+.aws-files{display:grid;gap:1px;background:var(--line);min-height:0;grid-template-columns:minmax(0,1fr)}
+.aws-files[data-count="2"]{grid-template-rows:1fr 1fr}
+.aws-files[data-count="3"],.aws-files[data-count="4"]{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(0,1fr)}
+.aws-files[data-count="3"] .aws-file:first-child{grid-column:1/-1}
+.aws-file{display:flex;flex-direction:column;padding:0}
+.aws-file header{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line);font-size:12px;min-width:0}
+.aws-file header strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.aws-file header time,.aws-stat{font:10px Geist,monospace;color:var(--muted);flex-shrink:0}
+.aws-badge{font:9px Geist,monospace;text-transform:uppercase;padding:2px 5px;border:1px solid var(--line);color:var(--muted);flex-shrink:0}
+.aws-badge.novo{color:var(--green);border-color:#a3ff1255}.aws-badge.removido{color:#ff8a7a;border-color:#ff8a7a55}
+.aws-diff{flex:1;min-height:0;overflow:auto;margin:0;padding:8px 0;font:12px/1.5 Geist,monospace;background:var(--bg)}
+.aws-diff span{display:block;padding:0 12px;white-space:pre}
+.aws-diff .add{background:#a3ff1214;color:#c9f59a}.aws-diff .del{background:#ff8a7a14;color:#ffb0a5}.aws-diff .hunk{color:#7ab8f0}
+.aws-empty{display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:12px}
+.autowork-show.active{color:var(--green);border-color:#a3ff1255}
+.autowork-stage{container-type:inline-size}
+@container (max-width:860px){.aws-grid{grid-template-columns:minmax(260px,.9fr) minmax(0,1.3fr)}.aws-files[data-count="3"],.aws-files[data-count="4"]{grid-template-columns:1fr}.aws-files[data-count="3"] .aws-file:first-child{grid-column:auto}}
+@container (max-width:620px){.aws-grid{grid-template-columns:1fr;grid-template-rows:minmax(200px,45%) minmax(0,1fr)}}
