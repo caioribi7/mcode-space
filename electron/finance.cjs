@@ -8,23 +8,23 @@ function row(kind,v){
  return [text(v.id,true),text(v.name,true),text(v.contact||''),text(v.email||''),text(v.phone||''),text(v.service||''),'Ativo',v.amount?money(v.amount):''];
 }
 
-function createFinance({account}){
+function createFinance({account,teams}){
  const tables={ledger:'mcode_transactions',fixed:'mcode_fixed_expenses',clients:'mcode_clients'};let queue=Promise.resolve();
- const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
- async function context(){const u=await account.user();return {c:await account.getClient(),u};}
- async function all(c,table){const rows=[];for(let start=0;;start+=500){const {data,error}=await c.from(table).select('*').order('created_at').order('id').range(start,start+499);account.check(error);rows.push(...data);if(data.length<500)return rows;}}
- async function snapshot(){const {c,u}=await context(),[ledger,fixed,clients]=await Promise.all(Object.values(tables).map(t=>all(c,t)));
+ const today=()=>new Intl.DateTimeFormat('sv-SE').format(new Date());
+ async function context(){const u=await account.user(),team=await teams.current();return {c:await account.getClient(),u,team};}
+ async function all(c,table,team){const rows=[];for(let start=0;;start+=500){const {data,error}=await c.from(table).select('*').eq('team_id',team.id).order('created_at').order('id').range(start,start+499);account.check(error);rows.push(...data);if(data.length<500)return rows;}}
+ async function snapshot(){const {c,team}=await context(),[ledger,fixed,clients]=await Promise.all(Object.values(tables).map(t=>all(c,t,team)));
  const l=ledger.map(r=>[r.type,r.group_name,r.category,r.description,r.client_code||'',date(r.due_on),date(r.paid_on),Number(r.amount),r.paid_on?'Liquidado':!r.due_on?'Sem vencimento':r.due_on<today()?'Vencido':'Em aberto','','','',r.id,r.updated_at]);
  const f=fixed.map(r=>[r.description,r.category,r.supplier,Number(r.amount),r.period,r.due_day,r.active?'Sim':'Não',r.active?Number(r.amount)/({Mensal:1,Trimestral:3,Semestral:6,Anual:12}[r.period]):0,'OK']);
  const customers=clients.map(r=>{const linked=l.filter(t=>t[4]===r.code&&t[1]==='Receita cliente');const sum=fn=>linked.filter(fn).reduce((n,v)=>n+v[7],0);return [r.code,r.name,r.contact,r.email,r.phone,r.service,'Ativo',r.contract?Number(r.contract):'',sum(t=>t[6]),sum(t=>!t[6]),sum(t=>t[8]==='Vencido'),'OK'];});
- return {ledger:l,fixed:f,clients:customers,synced:Date.now()};}
+ return {ledger:l,fixed:f,clients:customers,team:{id:team.id,name:team.name},synced:Date.now()};}
  const serialize=fn=>{const work=queue.catch(()=>{}).then(fn);queue=work;return work;};
  return {status:async()=>({connected:await account.isSignedIn()}),snapshot,
- add:(kind,v)=>serialize(async()=>{const values=row(kind,v),{c,u}=await context();let entry;
+ add:(kind,v)=>serialize(async()=>{const values=row(kind,v),{c,u,team}=await context();let entry;
  if(kind==='ledger')entry={owner_id:u.id,type:values[0],group_name:values[1],category:values[2],description:values[3],client_code:values[4]?values[4].toLowerCase():null,due_on:v.due||null,paid_on:v.paid||null,amount:values[7]};
  else if(kind==='fixed')entry={owner_id:u.id,description:values[0],category:values[1],supplier:values[2],amount:values[3],period:values[4],due_day:values[5],active:true};
  else entry={owner_id:u.id,code:values[0].toLowerCase(),name:values[1],contact:values[2],email:values[3],phone:values[4],service:values[5],contract:values[7]||null};
- const {error}=await c.from(tables[kind]).insert(entry);account.check(error);return snapshot();}),
- settle:(id,stamp)=>serialize(async()=>{if(typeof id!=='string'||!/^[-a-f0-9]{36}$/.test(id)||typeof stamp!=='string'||stamp.length>50)throw Error('Lançamento inválido.');const {c,u}=await context();const {data,error}=await c.from(tables.ledger).update({paid_on:today()}).eq('id',id).eq('updated_at',stamp).is('paid_on',null).select('id');account.check(error);if(data.length!==1)throw Error('O lançamento mudou. Atualize os dados e tente novamente.');return snapshot();})};
+ const {error}=await c.from(tables[kind]).insert({...entry,team_id:team.id});account.check(error);return snapshot();}),
+ settle:(id,stamp)=>serialize(async()=>{if(typeof id!=='string'||!/^[-a-f0-9]{36}$/.test(id)||typeof stamp!=='string'||stamp.length>50)throw Error('Lançamento inválido.');const {c,team}=await context();const {data,error}=await c.from(tables.ledger).update({paid_on:today()}).eq('team_id',team.id).eq('id',id).eq('updated_at',stamp).is('paid_on',null).select('id');account.check(error);if(data.length!==1)throw Error('O lançamento mudou. Atualize os dados e tente novamente.');return snapshot();})};
 }
 module.exports={createFinance,row,date};

@@ -9,7 +9,7 @@ async function renderContractPdf(BrowserWindow,data){
 function createContracts({BrowserWindow,dialog,getWindow}){let busy=false;return async data=>{
  if(busy)throw new Error('Aguarde a geração atual.');busy=true;
  try{const {validateContract}=await import('./contracts-template.mjs');const value=validateContract(data);
- const answer=await dialog.showSaveDialog(getWindow(),{title:'Salvar contrato em PDF',defaultPath:'Contrato-MCode-'+value.project.replace(/[^a-zA-Z0-9_-]/g,'-').slice(0,60)+'.pdf',filters:[{name:'PDF',extensions:['pdf']}],properties:['showOverwriteConfirmation']});
+ const answer=await dialog.showSaveDialog(getWindow(),{title:'Salvar contrato em PDF',defaultPath:'Contrato-'+value.project.replace(/[^a-zA-Z0-9_-]/g,'-').slice(0,60)+'.pdf',filters:[{name:'PDF',extensions:['pdf']}],properties:['showOverwriteConfirmation']});
  if(answer.canceled)return null;
  const target=answer.filePath.toLowerCase().endsWith('.pdf')?answer.filePath:answer.filePath+'.pdf';
  if(path.extname(target).toLowerCase()!=='.pdf'||target.split(/[\\/]/).some(p=>p.toLowerCase()==='.git'))throw new Error('Destino inválido.');

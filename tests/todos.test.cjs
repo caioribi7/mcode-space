@@ -6,8 +6,8 @@ test('todo input validates dates, priority, title and ignores author input',()=>
 test('todos queries are shared, inserts record the actual author, updates check versions',async()=>{
  const calls=[],id='00000000-0000-0000-0000-000000000001';let conflict=false;
  const client={from(table){assert.equal(table,'mcode_todos');const q={select(){return q;},order(){return q;},range(){return Promise.resolve({data:[],error:null});},eq(...v){calls.push(['eq',...v]);return q;},insert(v){calls.push(['insert',v]);return q;},update(v){calls.push(['update',v]);return q;},delete(){calls.push(['delete']);return q;},then(resolve){return Promise.resolve({data:conflict?[]:[{id}],error:null}).then(resolve);}};return q;}};
- const service=createTodos({account:{user:async()=>({id:'real-author'}),getClient:async()=>client,check:e=>{if(e)throw e;}}});
- await service.save({title:'Task',notes:'',priority:'normal',done:false,created_by:'forged'});assert.equal(calls.find(v=>v[0]==='insert')[1].created_by,'real-author');assert.equal(calls.some(v=>v[1]==='created_by'),false);
+ const service=createTodos({account:{user:async()=>({id:'real-author'}),getClient:async()=>client,check:e=>{if(e)throw e;}},teams:{current:async()=>({id:'team-1',name:'Equipe',role:'member'})}});
+ await service.save({title:'Task',notes:'',priority:'normal',done:false,created_by:'forged'});assert.equal(calls.find(v=>v[0]==='insert')[1].created_by,'real-author');assert.equal(calls.find(v=>v[0]==='insert')[1].team_id,'team-1');assert.ok(calls.some(v=>v[0]==='eq'&&v[1]==='team_id'&&v[2]==='team-1'));assert.equal(calls.some(v=>v[1]==='created_by'),false);
  conflict=true;await assert.rejects(service.save({id,updated_at:'2026-10-30T12:00:00Z',title:'Edit',notes:'',priority:'normal',done:true}),/mudou/);assert.ok(calls.some(v=>v[1]==='updated_at'));
  await assert.rejects(service.remove(id,'2026-10-30T12:00:00Z'),/mudou/);
 });

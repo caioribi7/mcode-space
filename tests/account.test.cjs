@@ -4,7 +4,8 @@ const {profileInput,publicConfig,credentials}=require('../electron/account-valid
 const config={url:'https://example.supabase.co',key:'sb_publishable_test'};
 test('only public project keys and HTTPS Supabase URLs are accepted',()=>{
  assert.deepEqual(publicConfig(config),config);
- for(const url of ['http://example.supabase.co','https://example.supabase.co.evil.test','file:///tmp','https://example.supabase.co/other'])assert.throws(()=>publicConfig({...config,url}));
+ for(const url of ['https://supabase.empresa.com.br','http://127.0.0.1:54321','http://localhost:54321'])assert.equal(publicConfig({...config,url}).url,new URL(url).origin);
+ for(const url of ['http://example.supabase.co','https://example.supabase.co.evil.test','file:///tmp','https://example.supabase.co/other','http://supabase.empresa.com','https://localhost','javascript:alert(1)'])assert.throws(()=>publicConfig({...config,url}));
  for(const key of ['sb_secret_test','abc.'+Buffer.from(JSON.stringify({role:'service_role'})).toString('base64url')+'.xyz'])assert.throws(()=>publicConfig({...config,key}));
 });
 test('validates username, display name, stack and credentials',()=>{
