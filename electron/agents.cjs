@@ -17,9 +17,9 @@ function resolveAgent(id, env=process.env, platform=process.platform, excludedRo
       if(platform==='win32'&&ext!=='.exe'){
         if(/[&|<>^%!"\r\n]/.test(candidate))continue;
         // node-pty must receive cmd's raw command line; argv escaping breaks shim quotes.
-        return {command:path.join(env.SystemRoot||'C:\\Windows','System32/cmd.exe'),args:`/d /s /c ""${candidate}""`};
+        return {command:path.join(env.SystemRoot||'C:\\Windows','System32/cmd.exe'),args:`/d /s /c ""${candidate}""`,target:candidate};
       }
-      return {command:candidate,args:[]};
+      return {command:candidate,args:[],target:candidate};
     }
   }
   return null;

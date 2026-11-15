@@ -137,3 +137,38 @@
 #contract-dialog{width:min(900px,95vw);max-height:90vh;padding:0}.contract-preview-actions{display:flex;align-items:center;gap:12px;padding:16px;position:sticky;top:0;background:var(--surface)}.contract-preview-actions h2{font-size:16px;flex:1;margin:0}
 #contract-preview{background:#fff;color:#171c18;padding:36px;font:14px/1.6 Arial,sans-serif}#contract-preview header{letter-spacing:2px;border-bottom:2px solid #46651e}#contract-preview h1{font-size:26px}#contract-preview h2{font-size:18px;margin:24px 0 12px}#contract-preview p{white-space:pre-wrap;overflow-wrap:anywhere}#contract-preview .signature{border:1px dashed #999;height:115px;padding:14px;margin:14px 0}#contract-preview .signature p{font-size:12px;color:#666}
 .topbar{flex-wrap:wrap;height:auto;min-height:74px;padding-block:10px}
+
+.autowork-sidebar{width:clamp(300px,var(--sidebar),460px)}
+.autowork-run{border-top:1px solid var(--line);padding:12px 0}
+#autowork-status{font-size:14px;margin:0 0 6px;color:var(--muted)}#autowork-status.active{color:var(--green)}
+.autowork-run .finance-form-actions button{display:inline-flex;align-items:center;gap:6px}
+.autowork-choices{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding:12px 0}
+.autowork-choices h2,.autowork-log-title{font-size:12px;margin:4px 0;color:var(--text)}
+.autowork-option{display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--bg);border:1px solid var(--line);color:var(--text);padding:10px;border-radius:2px;cursor:pointer;overflow-wrap:anywhere}
+.autowork-option span{font-size:11px;color:var(--muted)}.autowork-option.recommended{border-color:var(--green)}
+.autowork-option:hover:not(:disabled),.autowork-option:focus-visible{border-color:var(--green)}
+.autowork-idea{border-top:1px solid var(--line);padding-top:4px}
+.autowork-config{border-top:1px solid var(--line);padding:8px 0}.autowork-config summary{cursor:pointer;font-size:12px;padding:6px 0}
+.autowork-pairing{font-family:var(--mono,monospace);font-size:12px;color:var(--green);overflow-wrap:anywhere}
+.autowork-providers{font-size:11px;color:var(--muted);padding-left:16px;line-height:1.8}
+.autowork-log{list-style:none;padding:0;margin:0;font-size:11px;line-height:1.6}
+.autowork-log li{display:grid;grid-template-columns:42px 1fr;gap:6px;border-top:1px solid var(--line);padding:5px 0;overflow-wrap:anywhere}.autowork-log time{color:var(--muted);font-variant-numeric:tabular-nums}
+
+.team-indicator{margin-left:6px;padding:2px 6px;border:1px solid var(--line);color:var(--green);font:10px Geist,monospace;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.account-teams{border-top:1px solid var(--line);margin-top:22px;padding-top:12px}
+.account-teams h3{font:22px/1.1 Anton,sans-serif;margin:8px 0}.account-teams h4{font-size:12px;margin:20px 0 6px}
+.account-teams select{width:100%;background:var(--bg);border:1px solid var(--line);padding:9px;color:var(--text);border-radius:2px}
+.team-note{font-size:11px;line-height:1.6;color:var(--muted)}
+.team-inline{display:flex;align-items:flex-end;gap:8px}.team-inline label{flex:1}
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.team-grid.two{grid-template-columns:1fr 1fr;margin-top:18px}
+.team-grid.two form{display:flex;flex-direction:column;gap:8px}
+.team-list{list-style:none;padding:0;margin:0}
+.team-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding:9px 0;font-size:12px;overflow-wrap:anywhere}
+.team-list small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.team-member-actions{display:flex;gap:6px;align-items:center}.team-member-actions select{width:auto;padding:5px}.team-member-actions .button,.team-list .button{font-size:10px;padding:5px 8px}
+#team-invite-code{font-family:Geist,monospace;color:var(--green)}
+.button.danger{color:#ff8a7a;border-color:#ff8a7a55}
+@media(max-width:640px){.team-grid,.team-grid.two{grid-template-columns:1fr}}
+/* Muitas laterais: abaixo de 2000px os botões da barra ficam só com ícone (título e aria-label mantidos). */
+@media(max-width:2400px){.topbar .workspace-name{display:none}}
+@media(max-width:2000px){.topbar .nav-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.topbar .button.subtle{padding-inline:10px}}

@@ -12,7 +12,7 @@ Lucide fornece todos os ícones funcionais. Marked e DOMPurify compõem a prévi
 
 ## Users
 
-Quem desenvolve projetos locais e quer organizar vários shells junto da estrutura de arquivos.
+Quem desenvolve projetos locais e quer organizar vários shells junto da estrutura de arquivos. Projeto aberto para qualquer empresa ou time: contas, equipes (organizações) e dados por equipe.
 
 ## Product Purpose
 
@@ -38,14 +38,18 @@ Arquivos .md e .markdown alternam entre edição e prévia pelos ícones de cód
 
 Usar os logos oficiais da MCode sem deformação e a paleta escura com verde neon. Português na interface. Os outros repositórios da MCode devem permanecer intactos.
 
-O editor oferece expansão por arquivo e mantém os terminais em execução. O financeiro alterna com o explorador na lateral esquerda e usa Supabase/Postgres, compartilhado entre todas as contas autenticadas. Perfis e fotos permanecem individuais. Contas aceitam email/senha com confirmação e os provedores Google e GitHub via navegador do sistema e PKCE. Provedores externos dependem de configuração no projeto Supabase. O perfil contém nome, usuário único, stack e foto privada no Storage. O renderer recebe apenas dados sanitizados de conta/perfil, sem tokens. As funções de filesystem, shells e Git continuam locais e independentes da conta.
+O editor oferece expansão por arquivo e mantém os terminais em execução. O financeiro alterna com o explorador na lateral esquerda e usa Supabase/Postgres, compartilhado entre os membros da equipe ativa. Perfis e fotos permanecem individuais. Contas aceitam email/senha com confirmação e os provedores Google e GitHub via navegador do sistema e PKCE. Provedores externos dependem de configuração no projeto Supabase. O perfil contém nome, usuário único, stack e foto privada no Storage. O renderer recebe apenas dados sanitizados de conta/perfil, sem tokens. As funções de filesystem, shells e Git continuam locais e independentes da conta.
 
 Terminais permitem sete ícones Lucide e quatro cores, persistidos com o nome. A borda verde animada identifica o painel selecionado e respeita movimento reduzido. A assinatura lateral mantém símbolo e frase, sem brackets decorativos.
 
-Tarefas são compartilhadas no Supabase, com criação, edição, conclusão/reabertura, exclusão confirmada, notas, prazo e prioridade. O painel alterna com Explorador e Financeiro na mesma lateral, preservando arquivos e terminais. Atualização automática de cinco segundos no painel ativo.
+Tarefas são compartilhadas no Supabase entre os membros da equipe ativa, com criação, edição, conclusão/reabertura, exclusão confirmada, notas, prazo e prioridade. O painel alterna com Explorador e Financeiro na mesma lateral, preservando arquivos e terminais. Atualização automática de cinco segundos no painel ativo.
 
 Agentes Codex, Hermes Agent, OpenCode e Claude são opções de novo terminal quando instalados. Abrir um agente disponibiliza Monitor de uso junto às demais laterais. Tokens são agrupados por agente e projeto desde a abertura, com cache separado e limites do Codex vindos do último evento do CLI. Provedores sem telemetria de limites são identificados. O monitor é local e independente do Supabase. Restaurar a organização não relança agentes automaticamente.
 
-Contratos: formulário, prévia e exportação PDF A4 com dados das partes, escopo, valores e prazos. Padrões MCode: Mateus Dias Alves, site R$600, domínio R$60/mês e assistência gratuita de três meses. Espaços para assinatura digital das partes e testemunhas; assinatura feita externamente. Dados só em memória. Monitor reduzido a duas barras percentuais dos períodos reais fornecidos pelo agente.
+Contratos: formulário, prévia e exportação PDF A4 com dados das partes, escopo, valores e prazos. Sem dados de prestador ou preços pré-preenchidos; marca do prestador opcional e assistência gratuita de três meses. Espaços para assinatura digital das partes e testemunhas; assinatura feita externamente. Dados só em memória. Monitor reduzido a duas barras percentuais dos períodos reais fornecidos pelo agente.
 
 Distribuição 0.9: instalador NSIS por usuário com escolha de diretório e canal de atualização GitHub público. Verificação ao iniciar e a cada seis horas; download explícito com progresso e instalação/reinício confirmado, avisando sobre alterações e terminais. Dados do perfil são preservados. Versões portáteis e anteriores à 0.9 exigem migração inicial pelo instalador.
+
+Equipes: criação, convites por código (papel, validade, usos), papéis dono/administrador/membro, troca de equipe ativa, saída e exclusão. Isolamento por RLS. Backend: Supabase Cloud, auto-hospedado ou local.
+
+Auto-work: lateral e bot do Telegram pareado. Planeja 5 tarefas, o usuário escolhe (ou o orquestrador decide), implementa num worktree da branch autowork, testa, revisa e faz commit, em loop até parar ou atingir limites. Orquestração Claude (plano) → NVIDIA → OpenCode grátis; implementação OpenCode/NVIDIA → OpenCode grátis → Claude. Resumos curtos por ciclo e resumo final. Sem push automático.

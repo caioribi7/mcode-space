@@ -1,7 +1,7 @@
 {
   "name": "mcode-space",
-  "version": "0.9.0",
-  "description": "Seu c\u00c3\u00b3digo, seus terminais. Um espa\u00c3\u00a7o MCode.",
+  "version": "0.10.0",
+  "description": "Seu cÃ³digo, seus terminais. Um espaÃ§o MCode.",
   "private": true,
   "main": "electron/main.cjs",
   "scripts": {

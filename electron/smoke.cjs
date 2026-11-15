@@ -236,7 +236,7 @@ module.exports = async ({ app, win, setRoot, sessions, agentMonitor }) => {
     await new Promise(resolve=>setTimeout(resolve,700));
     await js('document.querySelector("#open-updates").click()');await wait('document.querySelector("#updates-dialog").open');assert.equal(await js('document.querySelector("#updates-check").disabled'),true);await js('document.querySelector("#updates-close").click()');
     console.log('CONTRACT smoke: starting');
-    const {fields}=await import('./contracts-template.mjs');const contract=Object.fromEntries(fields.map(([key,,value,type])=>[key,value|| (type==='date'?'2026-10-31':key==='scope'?'Site com <script>alert(1)</script>':'Dado de exemplo')]));
+    const {fields}=await import('./contracts-template.mjs');const contract=Object.fromEntries(fields.map(([key,,value,type])=>[key,value|| (type==='date'?'2026-10-31':type==='number'?(key==='domainDay'?'10':'600'):key==='scope'?'Site com <script>alert(1)</script>':'Dado de exemplo')]));
     await js('document.querySelector("#toggle-contracts").click()');
     await js(`(()=>{const values=${JSON.stringify(contract)};for(const [key,value]of Object.entries(values))document.querySelector('#contract-form [name="'+key+'"]').value=value;document.querySelector('#contract-form').requestSubmit();})()`);
     assert.equal(await js('document.querySelector("#contract-dialog").open'),true);
@@ -275,6 +275,10 @@ module.exports = async ({ app, win, setRoot, sessions, agentMonitor }) => {
     assert.equal(await js('document.documentElement.scrollWidth>innerWidth'),false);
     await fs.writeFile(path.join(output,'agent-monitor-test.png'),(await win.webContents.capturePage()).toPNG());
     await js('document.querySelector("#show-explorer").click()');assert.equal(await js('document.querySelector("#monitor-sidebar").hidden'),true);
+    await js('document.querySelector("#toggle-autowork").click()');await wait('document.querySelectorAll("#autowork-providers li").length===3');
+    assert.equal(await js('document.querySelector("#autowork-sidebar").hidden'),false);assert.equal(await js('document.querySelector("#autowork-start").disabled'),false);assert.equal(await js('document.querySelector("#autowork-status").textContent'),'Parado');
+    await js('document.querySelector(".autowork-config").open=true');assert.equal(await js('document.documentElement.scrollWidth>innerWidth'),false);
+    await fs.writeFile(path.join(output,'autowork.png'),(await win.webContents.capturePage()).toPNG());await js('document.querySelector("#close-autowork").click()');
     if(priorHome===undefined)delete process.env.CODEX_HOME;else process.env.CODEX_HOME=priorHome;
     console.log('SMOKE OK: shells reais; abas de pastas preservando processos e rascunhos; atualização automática; recolher explorador; Markdown sanitizado, edição e prévia; sete mosaicos; ícones Lucide; mover arquivos; renomear e reordenar.');
     result = 0;

@@ -2,7 +2,25 @@
 
 Aplicativo desktop para organizar terminais e editar arquivos, com a identidade visual MCode.
 
-## Executar
+## Baixar e instalar
+
+[**Baixar a versão mais recente**](https://github.com/caioribi7/mcode-space/releases/latest) (Windows 10/11, 64 bits)
+
+| Arquivo | Para quê |
+| --- | --- |
+| `MCode-Space-Setup-<versão>.exe` | **Instalador recomendado.** Cria atalhos e recebe atualizações pelo app |
+| `MCode-Space-<versão>.exe` | Portátil: roda sem instalar e não se atualiza sozinho |
+
+1. Baixe o **Setup** na página da release.
+2. Abra o arquivo. Como o instalador não tem assinatura digital, o Windows SmartScreen pode avisar: clique em **Mais informações → Executar assim mesmo**.
+3. Escolha a pasta de instalação e conclua. O instalador cria o atalho **MCode Space** na Área de Trabalho e no Menu Iniciar.
+4. Para fixar: botão direito no atalho (ou no ícone na barra de tarefas com o app aberto) → **Fixar na barra de tarefas** / **Fixar em Iniciar**.
+
+Se o atalho da Área de Trabalho não aparecer, abra o Menu Iniciar, procure "MCode Space", clique com o botão direito → **Abrir local do arquivo** e arraste o atalho para a Área de Trabalho segurando **Alt**.
+
+Atualizações: com o app instalado, **Atualizações** na barra inferior verifica, baixa e instala novas versões após sua confirmação. Seus dados e configurações são preservados. Para desinstalar, use Configurações do Windows → Aplicativos → MCode Space.
+
+## Executar a partir do código
 
 No Windows 10/11, com Node.js 22 ou superior:
 
@@ -11,13 +29,13 @@ npm ci
 npm start
 ```
 
-Para distribuir uma versão portátil:
+Para gerar instalador e portátil:
 
 ```powershell
 npm run dist
 ```
 
-O executável fica em `release/MCode-Space-0.9.0.exe`. O pacote não tem assinatura digital.
+Os arquivos ficam em `release/` (`MCode-Space-Setup-<versão>.exe`, blockmap, `latest.yml` e o portátil). O pacote não tem assinatura digital. Para publicar, envie instalador, blockmap e `latest.yml` juntos numa release `v<versão>` do GitHub.
 
 O visual da versão 0.2 herda a composição de pôster tecnológico da referência fornecida: tipografia Anton, recortes diagonais, linhas finas, símbolo oficial amostrado em ASCII e halftone discreto. A paleta continua sendo a da MCode. A textura fica na apresentação e na assinatura lateral; editor e terminais mantêm fundos planos.
 
@@ -97,9 +115,21 @@ O botão **Financeiro** alterna a lateral esquerda entre arquivos e um menu pró
 
 **Minha conta** oferece criação e login por email/senha, Google e GitHub. Os logins sociais abrem no navegador do sistema com PKCE e retornam por `http://127.0.0.1:47831/auth/callback/*`. Fechar a janela da conta cancela um login pendente. Email exige confirmação; o app aceita o código do email quando o template contém `{{ .Token }}`. A conta pode editar nome, usuário único e stack (até 20 tecnologias), além de enviar uma foto PNG/JPG/WebP de até 8 MB, convertida para PNG e reduzida antes do envio.
 
-A chave pública do projeto vem em `electron/supabase-config.json`; ela depende das políticas RLS e não é uma chave administrativa. Tokens ficam criptografados no perfil do Windows e nunca são expostos ao renderer. As fotos ficam em um bucket privado, por pasta de usuário. Perfis e fotos são individuais. Caixa, clientes, gastos fixos e tarefas são compartilhados entre todas as contas autenticadas. Pessoas sem login não acessam esses dados. As migrações em `supabase/migrations` criam as tabelas e políticas.
+A chave pública do projeto vem em `electron/supabase-config.json`; ela depende das políticas RLS e não é uma chave administrativa. Para usar o próprio backend, informe em **Conexão Supabase** a URL (Supabase Cloud, auto-hospedado em HTTPS ou `http://127.0.0.1:54321` local) e a chave publishable/anon. Tokens ficam criptografados no perfil do Windows e nunca são expostos ao renderer. As fotos ficam em um bucket privado, por pasta de usuário. Caixa, clientes, gastos fixos e tarefas pertencem a uma **equipe**. As migrações em `supabase/migrations` criam as tabelas e políticas.
 
-Google e GitHub precisam estar habilitados no painel do Supabase com seus respectivos Client ID e Client Secret. O projeto Supabase foi reativado e a estrutura antiga `onefoot` foi removida após confirmação explícita. A integração Google Sheets foi retirada do aplicativo; o arquivo existente no Drive não foi alterado. Veja [Configuração do Supabase](docs/SUPABASE.md).
+Google e GitHub precisam estar habilitados no painel do Supabase com seus respectivos Client ID e Client Secret. Veja [Configuração do Supabase](docs/SUPABASE.md).
+
+## Equipes (organizações)
+
+Qualquer empresa ou time pode usar o Space. Em **Minha conta → Equipes**:
+
+- **Criar equipe**: quem cria vira dono.
+- **Convidar**: dono ou administrador gera um código de 32 caracteres com papel (membro ou administrador), validade (1 a 30 dias) e número de usos. O código aparece uma única vez; o banco guarda apenas o hash. Convites ativos podem ser revogados.
+- **Entrar com convite**: cole o código recebido.
+- **Equipe ativa**: o seletor define de qual equipe são o caixa e as tarefas exibidos. O nome aparece no botão da conta. Uma conta pode participar de várias equipes.
+- **Papéis**: o dono altera papéis, renomeia, remove qualquer membro e exclui a equipe; o administrador renomeia, convida membros e remove membros comuns; o membro usa caixa e tarefas. Todos podem sair, menos o último dono.
+
+O isolamento é feito por RLS no banco: quem não é membro não lê nem grava dados da equipe, mesmo usando a chave pública diretamente.
 
 ## Personalizar terminais
 
@@ -107,9 +137,9 @@ Em modo Abas, os controles ficam na aba. Em Colunas e Mosaico, ficam no cabeçal
 
 ## Tarefas da equipe
 
-**Tarefas** abre a mesma lateral usada pelo explorador e pelo financeiro. A lista é única para todas as contas autenticadas. Crie tarefas com título, notas, prioridade e prazo, edite pelo lápis, marque como concluídas ou reabra pelo checkbox. Os filtros mostram pendentes, concluídas ou todas; prazos vencidos são destacados. Excluir pede confirmação e remove a tarefa para toda a equipe.
+**Tarefas** abre a mesma lateral usada pelo explorador e pelo financeiro. A lista pertence à equipe ativa. Crie tarefas com título, notas, prioridade e prazo, edite pelo lápis, marque como concluídas ou reabra pelo checkbox. Os filtros mostram pendentes, concluídas ou todas; prazos vencidos são destacados. Excluir pede confirmação e remove a tarefa para toda a equipe.
 
-O painel ativo consulta o Supabase a cada cinco segundos e oferece sincronização manual. Não há gravação offline. Edições usam id e updated_at para impedir que uma conta sobrescreva silenciosamente a alteração feita por outra. As colunas de autor são registradas pelo usuário autenticado, mas não limitam a visibilidade. Registros compartilhados sobrevivem à remoção do autor. Contas novas passam a ter acesso ao caixa e às tarefas compartilhadas após autenticação.
+O painel ativo consulta o Supabase a cada cinco segundos e oferece sincronização manual. Não há gravação offline. Edições usam id e updated_at para impedir que uma conta sobrescreva silenciosamente a alteração feita por outra. As colunas de autor são registradas pelo usuário autenticado, mas não limitam a visibilidade. Registros compartilhados sobrevivem à remoção do autor. Contas novas acessam caixa e tarefas ao criar uma equipe ou entrar por convite.
 
 ## Agentes e monitor de uso (0.7)
 
@@ -128,13 +158,40 @@ A organização salva restaura agentes como shells comuns, sem repetir comandos 
 
 ## Contratos (0.8)
 
-Abra **Contratos**, preencha os dados das partes, escopo, valores e prazos, confira a prévia e salve o PDF pelo diálogo nativo. O modelo parte de Mateus Dias Alves / MCode, R$ 600 por site, R$ 60 mensais pelo serviço de domínio e três meses de assistência gratuita após entrega e aceite. Os valores podem ser ajustados. Há espaços de assinatura para as partes e duas testemunhas. A assinatura será feita em plataforma externa; o aplicativo gera o PDF sem assinar ou enviar dados. O formulário permanece somente na memória durante esta abertura do Space.
+Abra **Contratos**, preencha os dados das partes, escopo, valores e prazos, confira a prévia e salve o PDF pelo diálogo nativo. O modelo traz três meses de assistência gratuita após entrega e aceite; prestador, marca (opcional), preço do site e mensalidade do domínio são preenchidos por quem usa. Há espaços de assinatura para as partes e duas testemunhas. A assinatura será feita em plataforma externa; o aplicativo gera o PDF sem assinar ou enviar dados. O formulário permanece somente na memória durante esta abertura do Space.
 
 O monitor foi simplificado para barras percentuais das duas janelas disponíveis. Codex informa 5 horas e semana; o aplicativo usa os períodos reais em vez de chamar a janela de 5h de diária.
 
+## Auto-work com Telegram
+
+A lateral **Auto-work** mantém agentes trabalhando no projeto até você mandar parar. Cada ciclo:
+
+1. O orquestrador analisa o projeto e propõe **5 próximas tarefas**.
+2. **Modo "Eu escolho"**: as opções chegam no Telegram (e no painel) com botões 1–5, "Decida você" e "Parar". **Modo "Decide sozinho"**: o orquestrador escolhe a recomendada.
+3. Um agente mais barato implementa num **worktree isolado da branch `autowork`** (em `%APPDATA%/mcode-space/autowork/worktrees`). A pasta aberta e a `main` não são tocadas.
+4. `npm test` roda no worktree; o orquestrador revisa o diff. Aprovado e com testes passando, vira **commit na branch `autowork`**. Reprovado, há uma segunda tentativa com o feedback (com o próximo executor) e depois o ciclo é descartado.
+5. O Telegram recebe um resumo curto (`✅ #3 a1b2c3d · título · +84 −12 · testes ok`). Ao parar, chega o resumo final com todos os commits e tokens por provedor.
+
+Para economizar o plano do Claude:
+
+| Papel | Ordem dos provedores |
+| --- | --- |
+| Orquestrar (planejar, detalhar, revisar) | Claude CLI pelo seu plano → API NVIDIA → OpenCode grátis (agente `plan`, só leitura) |
+| Implementar | OpenCode com modelo NVIDIA → OpenCode com modelo grátis → Claude |
+
+O Claude usa só leitura para planejar e revisar. Se atingir o limite do plano, é pausado por 30 minutos e a NVIDIA assume. O modelo NVIDIA é escolhido automaticamente entre os de código disponíveis na sua chave (MiniMax M3, Qwen3 Coder, Nemotron 3 Ultra, Kimi…), ou pode ser fixado na configuração. O modelo grátis do OpenCode vem de `opencode models opencode`.
+
+**Configurar:** crie um bot no @BotFather, cole o token em Auto-work → Configuração, clique em **Gerar código de pareamento** e envie `/parear 123456` ao bot em conversa privada. Opcional: chave da NVIDIA (build.nvidia.com, começa com `nvapi-`) e instalação do OpenCode (`npm i -g opencode-ai`). Defina limites de ciclos e horas por sessão.
+
+**Comandos:** `/iniciar` (você escolhe), `/iniciar sozinho`, `/sozinho`, `/manual`, `/ideia texto`, `/status`, `/pular`, `/parar` (termina a etapa atual), `/abortar` (encerra já e descarta o que não foi commitado), `/ajuda`. A primeira sessão é iniciada pelo app (define a pasta); depois `/iniciar` usa a mesma pasta, se ela estiver aberta numa aba.
+
+**Segurança:** só o chat pareado controla o bot e não há comando de shell arbitrário. Token e chave ficam criptografados no Windows. O Claude roda com `dontAsk` e lista fixa de ferramentas; o OpenCode, com bash negado exceto testes e git de leitura. Mudanças em `.git`, `.env` ou chaves descartam o ciclo. Commit feito pelo próprio agente volta para revisão. Não há push automático. O app impede a suspensão do Windows enquanto trabalha. Fechar o app aborta o auto-work. O código do projeto é enviado aos provedores escolhidos (Anthropic, NVIDIA, OpenCode); o Telegram recebe apenas resumos.
+
+Revise a branch `autowork` e faça o merge quando quiser (`git log main..autowork`).
+
 ## Instalação e atualizações (0.9)
 
-Baixe `MCode-Space-Setup-0.9.0.exe` na release do GitHub. O instalador permite escolher o diretório e preserva os dados do aplicativo. O portátil continua disponível, mas exige instalação manual para migrar ao canal de atualização.
+Baixe `MCode-Space-Setup-<versão>.exe` na [release mais recente](https://github.com/caioribi7/mcode-space/releases/latest). O instalador permite escolher o diretório e preserva os dados do aplicativo. O portátil continua disponível, mas exige instalação manual para migrar ao canal de atualização.
 
 Versões instaladas verificam releases estáveis do GitHub ao iniciar e a cada seis horas. **Atualizações** na barra inferior permite verificar manualmente, baixar com progresso e instalar/reiniciar após confirmação. O download não começa automaticamente; encerrar o app não instala uma atualização pendente. Salve seus arquivos antes de confirmar: os terminais serão encerrados.
 

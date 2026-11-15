@@ -6,7 +6,7 @@ export function setupFinance({api,icon,fitAll,notify}){
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
  const run=fn=>async()=>{try{await fn();}catch(e){$('finance-status').textContent=e.message;notify(e.message);}};
  const month=()=>{const [y,m]=$('finance-month').value.split('-').map(Number);return [Math.round((Date.UTC(y,m-1,1)-Date.UTC(1899,11,30))/86400000),Math.round((Date.UTC(y,m,1)-Date.UTC(1899,11,30))/86400000)];};
- $('finance-month').value=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit'}).format(new Date());
+ $('finance-month').value=new Intl.DateTimeFormat('sv-SE',{year:'numeric',month:'2-digit'}).format(new Date());
  function render(){
   const host=$('finance-content');host.replaceChildren();$('finance-new').disabled=!data;$('finance-setup').hidden=Boolean(data);
   $('finance-new').lastChild.textContent={summary:'Novo lançamento',ledger:'Novo lançamento',fixed:'Novo gasto fixo',clients:'Novo cliente'}[tab];

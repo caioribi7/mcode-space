@@ -1,10 +1,10 @@
 export function setupTodos({api,icon,notify}){
  const $=id=>document.getElementById(id);let rows=null,visible=false,loading=false,busy=false,editing=null,filter='pending',version=0;
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
- const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
+ const today=()=>new Intl.DateTimeFormat('sv-SE').format(new Date());
  function closeForm(){$('todo-form').hidden=true;$('todo-new').hidden=false;$('todo-form').reset();editing=null;}
  function render(){const list=$('todo-list');list.replaceChildren();$('todo-new').disabled=!rows||busy;$('todo-count').textContent=rows?`${rows.filter(r=>!r.done).length} pendentes · ${rows.filter(r=>r.done).length} concluídas`:'';
- if(!rows){list.append(node('p','Entre na sua conta para participar da lista da equipe.','finance-empty'));return;}
+ if(!rows){list.append(node('p','Entre na sua conta e escolha uma equipe para ver a lista.','finance-empty'));return;}
  const selected=rows.filter(r=>filter==='all'||r.done===(filter==='done')).sort((a,b)=>Number(a.done)-Number(b.done)||({high:0,normal:1,low:2}[a.priority]-{high:0,normal:1,low:2}[b.priority])||(a.due_on||'9999').localeCompare(b.due_on||'9999'));
  if(!selected.length)list.append(node('p',filter==='pending'?'Tudo em dia. Crie a próxima tarefa.':'Nenhuma tarefa neste filtro.','finance-empty'));
  for(const task of selected){const item=node('article',undefined,'todo-item'+(task.done?' completed':''));const line=node('div',undefined,'todo-line');const check=node('input');check.type='checkbox';check.checked=task.done;check.disabled=busy;check.setAttribute('aria-label',(task.done?'Reabrir ':'Concluir ')+task.title);check.onchange=()=>mutate(()=>api.todosSave({...task,done:check.checked}));line.append(check,node('strong',task.title));item.append(line);

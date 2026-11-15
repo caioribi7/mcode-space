@@ -12,12 +12,13 @@
     <div class="brand"><img src="assets/mcode.svg" alt="MCode" width="137" height="42"><span class="brand-divider"></span><span class="space-name">Space</span></div>
     <button id="toggle-explorer" class="icon-button" title="Recolher explorador (Ctrl B)" aria-label="Recolher explorador" aria-expanded="true"></button>
     <div id="workspace-name" class="workspace-name">Seu espaço de trabalho</div>
-    <button id="show-explorer" class="button subtle selected" aria-expanded="true"><span data-icon="folder"></span>Explorador</button>
-    <button id="toggle-finance" class="button subtle" aria-expanded="false"><span data-icon="finance"></span>Financeiro</button>
-    <button id="toggle-todo" class="button subtle" aria-expanded="false"><span data-icon="todo"></span>Tarefas</button>
-    <button id="toggle-monitor" class="button subtle" aria-expanded="false" hidden><span data-icon="activity"></span>Monitor de uso</button>
-    <button id="toggle-contracts" class="button subtle" aria-expanded="false"><span data-icon="file"></span>Contratos</button>
-    <button id="open-account" class="button subtle"><span data-icon="user"></span><span id="account-button-label">Minha conta</span></button>
+    <button id="show-explorer" class="button subtle selected" title="Explorador" aria-expanded="true"><span data-icon="folder"></span><span class="nav-label">Explorador</span></button>
+    <button id="toggle-finance" class="button subtle" title="Financeiro" aria-expanded="false"><span data-icon="finance"></span><span class="nav-label">Financeiro</span></button>
+    <button id="toggle-todo" class="button subtle" title="Tarefas" aria-expanded="false"><span data-icon="todo"></span><span class="nav-label">Tarefas</span></button>
+    <button id="toggle-monitor" class="button subtle" title="Monitor de uso" aria-expanded="false" hidden><span data-icon="activity"></span><span class="nav-label">Monitor de uso</span></button>
+    <button id="toggle-contracts" class="button subtle" title="Contratos" aria-expanded="false"><span data-icon="file"></span><span class="nav-label">Contratos</span></button>
+    <button id="toggle-autowork" class="button subtle" title="Auto-work" aria-expanded="false"><span data-icon="bot"></span><span class="nav-label">Auto-work</span></button>
+    <button id="open-account" class="button subtle"><span data-icon="user"></span><span id="account-button-label">Minha conta</span><span id="team-indicator" class="team-indicator" hidden></span></button>
     <button id="open-folder" class="button primary">Abrir pasta <kbd>Ctrl O</kbd></button>
   </header>
   <nav id="workspace-tabs" class="workspace-tabs" aria-label="Pastas abertas"></nav>
@@ -40,7 +41,7 @@
         <nav class="finance-tabs" aria-label="Áreas financeiras"><button data-finance="summary" aria-pressed="true">Resumo</button><button data-finance="ledger" aria-pressed="false">Movimentos</button><button data-finance="fixed" aria-pressed="false">Fixos</button><button data-finance="clients" aria-pressed="false">Clientes</button></nav>
         <p id="finance-status" role="status">Entre na sua conta para carregar o financeiro.</p>
         <div class="finance-connection"><button id="finance-connect" class="button subtle">Minha conta</button><button id="finance-sync" class="icon-button" title="Sincronizar" aria-label="Sincronizar"><span data-icon="sync"></span></button></div>
-        <div id="finance-setup" class="finance-setup"><p>Caixa compartilhado entre todas as contas MCode.</p></div>
+        <div id="finance-setup" class="finance-setup"><p>Caixa compartilhado com os membros da equipe <strong data-team-name>ativa</strong>. Crie ou escolha a equipe em Minha conta.</p></div>
         <div id="finance-content"></div>
         <button id="finance-new" class="button primary" disabled><span data-icon="plus"></span>Novo lançamento</button>
         <form id="finance-form" hidden><div id="finance-fields"></div><p id="finance-form-error" role="alert"></p><div class="finance-form-actions"><button type="button" id="finance-cancel" class="button subtle">Cancelar</button><button id="finance-save" type="submit" class="button primary">Salvar</button></div></form>
@@ -49,7 +50,7 @@
     </aside>
     <aside id="todo-sidebar" class="sidebar todo-sidebar" aria-label="Tarefas compartilhadas" hidden>
       <div class="section-head"><h1>Tarefas</h1><button id="close-todo" class="icon-button" title="Voltar ao explorador" aria-label="Voltar ao explorador"><span data-icon="folder"></span></button></div>
-      <div class="finance-scroll"><p class="finance-brand">Uma equipe.<br>Próximo passo.</p><p class="todo-intro">Lista compartilhada entre todas as contas MCode.</p>
+      <div class="finance-scroll"><p class="finance-brand">Uma equipe.<br>Próximo passo.</p><p class="todo-intro">Lista compartilhada com a equipe <strong data-team-name>ativa</strong>.</p>
       <div class="finance-connection"><span id="todo-status" role="status">Entre para carregar as tarefas.</span><button id="todo-sync" class="icon-button" title="Sincronizar tarefas" aria-label="Sincronizar tarefas"><span data-icon="sync"></span></button></div>
       <button id="todo-account" class="button subtle">Minha conta</button>
       <nav class="finance-tabs" aria-label="Filtrar tarefas"><button data-todo-filter="pending" aria-pressed="true">Pendentes</button><button data-todo-filter="done" aria-pressed="false">Concluídas</button><button data-todo-filter="all" aria-pressed="false">Todas</button></nav>
@@ -61,6 +62,31 @@
     <aside id="monitor-sidebar" class="sidebar monitor-sidebar" hidden>
       <div class="section-head"><h1>Monitor de uso</h1><button id="close-monitor" class="icon-button" aria-label="Voltar ao explorador" title="Voltar ao explorador"><span data-icon="close"></span></button></div>
       <div class="finance-scroll"><div id="monitor-list"></div></div>
+    </aside>
+    <aside id="autowork-sidebar" class="sidebar autowork-sidebar" aria-label="Auto-work" hidden>
+      <div class="section-head"><h1>Auto-work</h1><button id="close-autowork" class="icon-button" title="Voltar ao explorador" aria-label="Voltar ao explorador"><span data-icon="close"></span></button></div>
+      <div class="finance-scroll"><p class="finance-brand">Trabalho contínuo.<br>Você no controle.</p>
+      <p class="monitor-note">Planeja 5 tarefas, implementa a escolhida num worktree da branch <code>autowork</code>, roda os testes, revisa e faz commit. Repete até você parar. Os agentes enviam o código do projeto aos provedores escolhidos (Claude, NVIDIA, OpenCode); o Telegram recebe só resumos.</p>
+      <section class="autowork-run"><p id="autowork-status" role="status">Parado</p><p id="autowork-current" class="monitor-note"></p><p id="autowork-folder" class="monitor-note"></p><p id="autowork-usage" class="monitor-note"></p>
+      <nav class="finance-tabs" aria-label="Modo do auto-work"><button data-autowork-mode="manual" aria-pressed="true">Eu escolho</button><button data-autowork-mode="auto" aria-pressed="false">Decide sozinho</button></nav>
+      <div class="finance-form-actions"><button id="autowork-start" class="button primary"><span data-icon="play"></span>Iniciar nesta pasta</button><button id="autowork-stop" class="button subtle" hidden><span data-icon="stop"></span>Parar</button><button id="autowork-abort" class="button subtle" hidden>Abortar</button></div></section>
+      <div id="autowork-choices" class="autowork-choices" hidden></div>
+      <form id="autowork-idea" class="autowork-idea"><label>Sugerir tarefa<input name="idea" maxlength="500" placeholder="Ex.: adicionar filtro por prazo nas tarefas"></label><button type="submit" class="button subtle">Enviar ideia</button></form>
+      <details class="autowork-config"><summary>Configuração</summary>
+      <p id="autowork-telegram-state" class="monitor-note"></p><p id="autowork-pairing" class="autowork-pairing" aria-live="polite"></p>
+      <div class="finance-form-actions"><button id="autowork-pair" type="button" class="button subtle" hidden>Gerar código de pareamento</button><button id="autowork-unpair" type="button" class="button subtle" hidden>Desparear</button><button id="autowork-clear-telegram" type="button" class="button subtle" hidden>Remover bot</button></div>
+      <form id="autowork-form">
+      <label>Token do bot (@BotFather)<input name="telegramToken" type="password" autocomplete="off" spellcheck="false"></label>
+      <label>Chave NVIDIA (build.nvidia.com)<input name="nvidiaKey" type="password" autocomplete="off" spellcheck="false"></label>
+      <button id="autowork-clear-nvidia" type="button" class="button subtle" hidden>Remover chave NVIDIA</button>
+      <label>Modelo NVIDIA (vazio = automático)<input name="nvidiaModel" maxlength="120" spellcheck="false" placeholder="automático"></label>
+      <label>Modelo grátis do OpenCode (vazio = automático)<input name="freeModel" maxlength="120" spellcheck="false" placeholder="opencode/…"></label>
+      <label>Modelo do Claude (vazio = padrão do CLI)<input name="claudeModel" maxlength="60" spellcheck="false" placeholder="sonnet, opus…"></label>
+      <label>Máximo de ciclos por sessão (0 = sem limite)<input name="maxCycles" type="number" min="0" max="500"></label>
+      <label>Máximo de horas por sessão (0 = sem limite)<input name="maxHours" type="number" min="0" max="72" step="0.5"></label>
+      <button type="submit" class="button primary">Salvar configuração</button></form>
+      <ul id="autowork-providers" class="autowork-providers"></ul></details>
+      <h2 class="autowork-log-title">Registro</h2><ol id="autowork-log" class="autowork-log" aria-live="polite"></ol></div>
     </aside>
     <aside id="contracts-sidebar" class="sidebar contracts-sidebar" hidden><div class="section-head"><h1>Gerar contrato</h1><button id="close-contracts" class="icon-button" title="Voltar ao explorador" aria-label="Voltar ao explorador"><span data-icon="close"></span></button></div><div class="finance-scroll"><p class="finance-brand">Seu próximo<br>projeto.</p><p class="monitor-note">Preencha, confira e salve em PDF. Inclui três meses de assistência gratuita e espaços para assinatura em uma plataforma digital.</p><form id="contract-form"><div id="contract-fields"></div><button type="submit" class="button primary">Conferir contrato</button></form><p class="monitor-note">Revise as condições antes de assinar. A geração do PDF não realiza a assinatura.</p></div></aside>
     <div id="sidebar-resize" class="resize-handle" role="separator" tabindex="0" aria-label="Largura da lateral" aria-orientation="vertical"></div>
@@ -94,7 +120,7 @@
   <div id="folder-menu" class="folder-menu" role="menu" hidden><button id="folder-new-tab" role="menuitem"><span data-icon="folderPlus"></span>Abrir em nova aba</button><button id="folder-new-terminal" role="menuitem"><span data-icon="terminal"></span>Novo terminal aqui</button></div>
   <dialog id="rename-dialog"><form id="rename-form"><h2>Renomear terminal</h2><label for="terminal-name">Nome</label><input id="terminal-name" maxlength="60" required><label for="terminal-icon-choice">Ícone</label><select id="terminal-icon-choice"><option value="terminal">Terminal</option><option value="code">Código</option><option value="branch">Git</option><option value="folder">Pasta</option><option value="server">Servidor</option><option value="database">Banco de dados</option><option value="rocket">Projeto</option></select><label for="terminal-color">Cor de identificação</label><select id="terminal-color"><option value="green">Verde MCode</option><option value="blue">Azul</option><option value="amber">Âmbar</option><option value="pink">Rosa</option></select><div class="dialog-actions"><button id="cancel-rename" type="button" class="button subtle">Cancelar</button><button value="save" type="submit" class="button primary">Salvar</button></div></form></dialog>
   <dialog id="account-dialog" class="account-dialog" aria-labelledby="account-title">
-    <div class="account-heading"><div><span class="account-brand">MCODE / CONTA</span><h2 id="account-title">Seu espaço começa aqui.</h2></div><button id="account-close" type="button" class="icon-button" title="Fechar conta" aria-label="Fechar conta"><span data-icon="close"></span></button></div>
+    <div class="account-heading"><div><span class="account-brand">SPACE / CONTA</span><h2 id="account-title">Seu espaço começa aqui.</h2></div><button id="account-close" type="button" class="icon-button" title="Fechar conta" aria-label="Fechar conta"><span data-icon="close"></span></button></div>
     <p id="account-status" role="status"></p>
     <details id="account-config"><summary>Conexão Supabase</summary><form id="account-config-form"><label>URL do projeto<input name="url" type="url" required placeholder="https://seu-projeto.supabase.co"></label><label>Chave pública<input name="key" type="password" required autocomplete="off" placeholder="sb_publishable_…"></label><button class="button primary" type="submit">Conectar projeto</button></form></details>
     <section id="account-auth">
@@ -107,6 +133,26 @@
     <section id="account-profile" hidden>
       <div class="profile-photo-row"><div id="profile-avatar" class="profile-avatar" aria-label="Foto do perfil"></div><div><span id="profile-email"></span><button id="profile-upload" class="button subtle" type="button"><span data-icon="camera"></span>Escolher foto</button></div></div>
       <form id="profile-form"><label>Nome<input name="displayName" required maxlength="80" autocomplete="name"></label><label>Nome de usuário<input name="username" required minlength="3" maxlength="24" pattern="[a-z0-9_]{3,24}" autocomplete="username" placeholder="seu_usuario"><small>3 a 24 letras minúsculas, números ou _</small></label><label>Sua stack<input id="profile-stack-input" maxlength="30" placeholder="Ex.: React — Enter para adicionar" list="stack-suggestions"></label><datalist id="stack-suggestions"><option value="JavaScript"><option value="TypeScript"><option value="React"><option value="Node.js"><option value="Python"><option value="Go"><option value="Rust"><option value="PostgreSQL"><option value="Docker"><option value="Figma"></datalist><button id="profile-stack-add" type="button" class="button subtle">Adicionar tecnologia</button><div id="profile-stack-tags" class="profile-stack-tags" aria-label="Tecnologias da stack"></div><div class="account-actions"><button id="account-logout" type="button" class="button subtle">Sair da conta</button><button type="submit" class="button primary">Salvar perfil</button></div></form>
+    </section>
+    <section id="account-teams" class="account-teams" hidden>
+      <h3>Equipes</h3>
+      <p id="team-status" class="team-note" role="status"></p>
+      <label>Equipe ativa<select id="team-select" aria-label="Equipe ativa"></select></label>
+      <div id="team-manage" hidden>
+        <form id="team-rename-form" class="team-inline"><label>Nome da equipe<input name="name" required minlength="2" maxlength="80"></label><button type="submit" class="button subtle">Renomear</button></form>
+        <h4>Membros</h4><ul id="team-members" class="team-list"></ul>
+        <form id="team-invite-form" class="team-invite"><h4>Convidar pessoas</h4>
+          <div class="team-grid"><label>Papel<select name="role"><option value="member">Membro</option><option value="admin">Administrador</option></select></label><label>Validade (dias)<input name="days" type="number" min="1" max="30" value="7"></label><label>Usos<input name="uses" type="number" min="1" max="100" value="1"></label></div>
+          <button type="submit" class="button primary">Gerar código de convite</button>
+          <div id="team-invite-result" hidden><label>Código (copiado)<input id="team-invite-code" readonly spellcheck="false"></label><p class="team-note">Quem receber o código entra em Minha conta → Equipes → Entrar com convite. O código aparece só agora.</p></div>
+        </form>
+        <h4 id="team-invites-title" hidden>Convites ativos</h4><ul id="team-invites" class="team-list"></ul>
+        <div class="account-actions"><button id="team-leave" type="button" class="button subtle">Sair da equipe</button><button id="team-delete" type="button" class="button subtle danger" hidden>Excluir equipe</button></div>
+      </div>
+      <div class="team-grid two">
+        <form id="team-create-form"><label>Nova equipe<input name="name" required minlength="2" maxlength="80" placeholder="Nome da empresa ou time"></label><button type="submit" class="button subtle">Criar equipe</button></form>
+        <form id="team-join-form"><label>Entrar com convite<input name="code" required minlength="32" maxlength="40" spellcheck="false" autocomplete="off" placeholder="código de 32 caracteres"></label><button type="submit" class="button subtle">Entrar na equipe</button></form>
+      </div>
     </section>
   </dialog>
   <script src="app.js"></script>

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, nativeImage, safeStorage, ipcMain, dialog, shell: desktopShell } = require('electron');
+const { app, BrowserWindow, nativeImage, safeStorage, ipcMain, dialog, powerSaveBlocker, shell: desktopShell } = require('electron');
 const finance = require('./finance.cjs');
 const {createTodos}=require('./todos.cjs');
 const {createAccount}=require('./account.cjs');
@@ -43,7 +43,7 @@ function handle(channel, fn) {
   });
 }
 function authorizedRoot(candidate = root) { if (!candidate || !allowedRoots.has(candidate)) throw new Error('Esta pasta não está aberta em uma aba.'); return candidate; }
-function stopAll() { for (const session of sessions.values()) session.kill(); sessions.clear(); }
+function stopAll() { autowork?.shutdown().catch(()=>{}); for (const session of sessions.values()) session.kill(); sessions.clear(); }
 function session(id) { const value = sessions.get(id); if (!value) throw new Error('Este terminal já foi encerrado.'); return value; }
 async function readConfig() {
   try { return JSON.parse(await fs.readFile(configPath(), 'utf8')); }
@@ -105,8 +105,38 @@ handle('workspace:save', async settings => {
 });
 handle('workspace:dirty', value => { dirty = value === true; });
 const account=createAccount({app,safeStorage,shell:desktopShell,dialog,nativeImage,getWindow:()=>win});
-const finances=finance.createFinance({account});
-const todos=createTodos({account});
+const teams=require('./teams.cjs').createTeams({account,file:path.join(app.getPath('userData'),'teams.json')});
+const finances=finance.createFinance({account,teams});
+const todos=createTodos({account,teams});
+teams.onChange(()=>{if(win&&!win.isDestroyed())win.webContents.send('teams:changed');});
+const confirmTeam=async(message,detail,action)=>(await dialog.showMessageBox(win,{type:'warning',message,detail,buttons:['Cancelar',action],defaultId:0,cancelId:0})).response===1;
+handle('teams:state',()=>teams.state());
+handle('teams:select',id=>teams.select(id));
+handle('teams:create',name=>teams.create(name));
+handle('teams:rename',name=>teams.rename(name));
+handle('teams:remove',async id=>{const team=await teams.current();if(!(await confirmTeam(`Excluir a equipe ${team.name}?`,'Caixa, clientes e tarefas desta equipe serão apagados para todos os membros. Esta ação não pode ser desfeita.','Excluir equipe')))return null;return teams.remove(id);});
+handle('teams:leave',async id=>{const team=await teams.current();if(!(await confirmTeam(`Sair da equipe ${team.name}?`,'Você perderá o acesso ao caixa e às tarefas desta equipe até receber um novo convite.','Sair da equipe')))return null;return teams.leave(id);});
+handle('teams:invite',value=>teams.invite(value&&typeof value==='object'?value:{}));
+handle('teams:revoke-invite',id=>teams.revokeInvite(id));
+handle('teams:accept',code=>teams.accept(code));
+handle('teams:role',(userId,role)=>teams.setRole(userId,role));
+handle('teams:remove-member',async userId=>{if(!(await confirmTeam('Remover este membro da equipe?','A pessoa perderá o acesso ao caixa e às tarefas da equipe.','Remover')))return null;return teams.removeMember(userId);});
+// Auto-work: agentes trabalham num worktree na branch autowork, controlados pelo app e por um chat pareado do Telegram.
+let autoworkBlocker=null;
+const autowork=require('./autowork/index.cjs').createAutowork({userData:app.getPath('userData'),safeStorage,resolveAgent:agentCommand,allowedRoots:()=>[...allowedRoots],
+  send:value=>{if(win&&!win.isDestroyed())win.webContents.send('autowork:state',value);},
+  onRunning:running=>{if(running&&autoworkBlocker===null)autoworkBlocker=powerSaveBlocker.start('prevent-app-suspension');else if(!running&&autoworkBlocker!==null){powerSaveBlocker.stop(autoworkBlocker);autoworkBlocker=null;}}});
+handle('autowork:state',()=>autowork.state());
+handle('autowork:configure',value=>autowork.configure(value&&typeof value==='object'?value:{}));
+handle('autowork:pair',()=>autowork.pair());
+handle('autowork:unpair',()=>autowork.unpair());
+handle('autowork:start',(candidate,mode)=>autowork.start({root:authorizedRoot(candidate),mode:mode==='auto'?'auto':'manual'}));
+handle('autowork:stop',()=>autowork.stop());
+handle('autowork:abort',async()=>(await dialog.showMessageBox(win,{type:'warning',message:'Abortar o auto-work agora?',detail:'Os agentes em execução serão encerrados e as alterações ainda não commitadas na branch autowork serão descartadas.',buttons:['Cancelar','Abortar'],defaultId:0,cancelId:0})).response===1&&autowork.abort());
+handle('autowork:mode',mode=>autowork.setMode(mode));
+handle('autowork:choose',index=>autowork.choose(index));
+handle('autowork:decide',()=>autowork.decide());
+handle('autowork:idea',text=>typeof text==='string'?autowork.idea(text):false);
 handle('todos:list',()=>todos.list());
 handle('todos:save',value=>todos.save(value));
 handle('todos:remove',(id,stamp)=>todos.remove(id,stamp));
@@ -117,7 +147,7 @@ handle('account:signup',value=>account.signup(value));
 handle('account:verify',value=>account.verify(value));
 handle('account:oauth',provider=>account.oauth(provider));
 handle('account:cancel',()=>account.cancelOAuth());
-handle('account:logout',()=>account.logout());
+handle('account:logout',async()=>{const result=await account.logout();teams.reset();return result;});
 handle('account:profile',value=>account.saveProfile(value));
 handle('account:avatar',()=>account.uploadAvatar());
 handle('finance:status',()=>finances.status());
@@ -187,9 +217,9 @@ app.whenReady().then(async () => {
   win.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   win.on('close', event => {
     if (quitting || smoke) return;
-    if (dirty || sessions.size) {
+    if (dirty || sessions.size || autowork.running) {
       event.preventDefault();
-      dialog.showMessageBox(win, { type: 'question', message: 'Fechar o MCode Space?', detail: dirty ? 'Há arquivos com alterações não salvas. Os processos dos terminais também serão encerrados.' : 'Os processos dos terminais serão encerrados. A organização será restaurada na próxima abertura.', buttons: ['Cancelar', 'Fechar'], defaultId: 0, cancelId: 0 }).then(answer => { if (answer.response === 1) { quitting = true; stopAll(); win.close(); } });
+      dialog.showMessageBox(win, { type: 'question', message: 'Fechar o MCode Space?', detail: (autowork.running ? 'O auto-work está em execução e será abortado. ' : '') + (dirty ? 'Há arquivos com alterações não salvas. Os processos dos terminais também serão encerrados.' : 'Os processos dos terminais serão encerrados. A organização será restaurada na próxima abertura.'), buttons: ['Cancelar', 'Fechar'], defaultId: 0, cancelId: 0 }).then(answer => { if (answer.response === 1) { quitting = true; stopAll(); win.close(); } });
     }
   });
   win.on('closed', stopAll);
@@ -197,6 +227,7 @@ app.whenReady().then(async () => {
   handle('updates:state',()=>updates.state());handle('updates:check',()=>updates.check());handle('updates:download',()=>updates.download());handle('updates:install',()=>updates.apply());
   if(app.isPackaged&&!smoke&&!process.env.PORTABLE_EXECUTABLE_DIR){const timer=setTimeout(()=>updates.check(),10000);timer.unref();const periodic=setInterval(()=>updates.check(),6*60*60*1000);periodic.unref();}
   await win.loadFile(entry);
+  if (!smoke) autowork.init().catch(()=>{});
   if (smoke) require('./smoke.cjs')({ app, win, pty, shells, files, sessions, agentMonitor, setRoot: value => { root = value; } });
 });
 app.on('window-all-closed', () => app.quit());
